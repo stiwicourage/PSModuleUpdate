@@ -10,7 +10,7 @@ defined by `project.json`; the module root and manifest are generated under
 pwsh -NoLogo -NoProfile -File ./run.ps1
 ```
 
-GitHub Actions (`.github/workflows/ci.yml`, not yet run on GitHub) runs the same Nova build, unit and
+GitHub Actions (`.github/workflows/ci.yml`) runs the same Nova build, unit and
 integration phases per platform lane through
 `./scripts/build/ci/Invoke-PlatformLane.ps1 -LaneId <lane-id>`; see
 [G4A4/PHASE1_IMPLEMENTATION.md](G4A4/PHASE1_IMPLEMENTATION.md).
@@ -82,8 +82,10 @@ before/after dependency and repository-store fingerprints were unchanged.
 
 GitHub's current standard public-runner reference explicitly maps `macos-15`
 to ARM64; this documented mapping does not replace runtime validation or the
-first real six-lane GitHub execution. No Windows/Linux qualification is
-inferred from local macOS results.
+real six-lane GitHub execution. The first hosted run passed both Mac lanes but
+failed Windows/Linux unit tests; see the [hosted result and fixes](G4A4/PHASE1_IMPLEMENTATION.md#first-hosted-run-and-platform-fixes-2026-10-23).
+The complete matrix remains unqualified until the fixes pass on GitHub.
+No Windows/Linux qualification is inferred from local macOS results.
 
 ## Test ownership
 
@@ -114,6 +116,14 @@ PSResourceGet may use the real user's application-data directory. Use only
 uniquely named test-owned registrations, remove only those registrations in
 cleanup, and compare the pre-existing registration state before and afterward.
 Never restore an entire registration file over possible concurrent changes.
+
+Linux has a different native-store rule: `LocalApplicationData` follows
+`XDG_DATA_HOME`, or the child HOME's `.local/share` when that variable is unset.
+Two different HOMEs therefore need not share a repository store or transport
+lease. Shared-store coordination tests must explicitly select a common native
+store and independently verify the provider's actual location. This does not
+change the production rule that cooperating operations on the same store must
+share their transport lease.
 
 Use child processes for exclusive-lock contention, holder termination,
 loaded-module behavior, and interrupted replacement. Preserve usable backup and

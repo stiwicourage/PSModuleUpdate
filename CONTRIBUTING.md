@@ -49,7 +49,8 @@ Recommended flow:
     - Use `/agent release-manager`, `.github/agents/release-manager.agent.md`, and `.github/prompts/prepare-release.prompt.md` when release-facing files change.
 
 The [G-4A4 plan](docs/architecture/G4A4/README.md) designs the GitHub Actions matrix and release gating. Phase 1
-(`.github/workflows/ci.yml`, `scripts/build/ci/`) is implemented locally but has **not yet run on GitHub**; see
+(`.github/workflows/ci.yml`, `scripts/build/ci/`) has executed on GitHub: both macOS lanes passed, while
+Windows/Linux fixes still require a successful rerun; see
 [PHASE1_IMPLEMENTATION.md](docs/architecture/G4A4/PHASE1_IMPLEMENTATION.md) for triggers, lanes, the `ci-gate`,
 artifacts and local validation. To reproduce a lane locally, run
 `pwsh -NoLogo -NoProfile -File ./scripts/build/ci/Invoke-PlatformLane.ps1 -LaneId <lane-id>` on a matching OS,

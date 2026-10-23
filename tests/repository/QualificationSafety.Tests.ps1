@@ -25,6 +25,21 @@ Describe 'Repository qualification safety' -Tag 'RepositoryQualification' {
         { Assert-QualificationDestination "$TestDrive/home" "$TestDrive/home" } | Should -Throw '*destination*'
     }
 
+    It 'accepts canonical native child paths and normalizes alternate separators when supported' {
+        $homePath = [IO.Path]::GetFullPath((Join-Path $TestDrive 'home'))
+        $child = Join-Path $homePath 'Modules'
+        Assert-QualificationDestination $child $homePath | Should -BeNullOrEmpty
+        $alternateHome = $homePath.Replace([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+        Assert-QualificationDestination $child "$alternateHome/" | Should -BeNullOrEmpty
+    }
+
+    It 'rejects native sibling prefixes and canonical traversal out of the home' {
+        $homePath = Join-Path $TestDrive 'home'
+        { Assert-QualificationDestination (Join-Path "$homePath-other" 'Modules') $homePath } | Should -Throw '*destination*'
+        { Assert-QualificationDestination "$homePath/../outside/Modules" $homePath } | Should -Throw '*destination*'
+        { Assert-QualificationDestination "$homePath/Modules/.." $homePath } | Should -Throw '*destination*'
+    }
+
     It 'rejects symlinked disposable roots before installation' {
         New-Item "$TestDrive/real" -ItemType Directory | Out-Null
         New-Item "$TestDrive/linked" -ItemType SymbolicLink -Target "$TestDrive/real" | Out-Null
