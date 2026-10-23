@@ -1,21 +1,42 @@
 # TL;DR
 
-Implement PSModuleUpdate test-first as a Nova-managed PowerShell 7.4+ module
-with exactly two public commands. Preserve the G-4A1 plan/consent/error model,
+G-4A3 is **complete and accepted within its qualified scope as of 2026-10-23**.
+See [closure and preserved evidence](G4A3_CLOSURE.md). Functional implementation,
+executed tests, owner-accepted quality findings, and outstanding environment
+qualification are separate statuses, not one universal readiness claim.
+
+The completed development plan below implemented PSModuleUpdate test-first as a
+Nova-managed PowerShell 7.4+ module with exactly two public commands.
+Preserve the G-4A1 plan/consent/error model,
 then apply the approved G-4A2-FIX2 revisions: CurrentUser and AllUsers, semantic
 same-base prerelease progression, Strategy C staging and replacement, persistent
 recovery, OS-level locks, tree verification, and best-effort rollback.
 
-This is an execution plan, not a completion report. Architecture alignment is
-recorded; implementation and qualification are ongoing. The repository and
-authentication clarification extends that ongoing work rather than restarting
-it. No incomplete phase below is implied complete by its presence in this plan.
+Phases 3A through 4F are retained as the completed implementation work breakdown,
+not instructions to restart development. Their functional outcomes were accepted;
+their cross-platform/live-environment criteria remain bounded by actual evidence.
+The separate proposed qualification phase is
+[cross-platform testing](CROSS_PLATFORM_TESTING.md), with an
+[execution roadmap](TEST_IMPLEMENTATION_ROADMAP.md). No infrastructure
+implementation is authorized by this documentation update.
+
+## Completion status
+
+| Area | Status |
+| --- | --- |
+| Phases 3A-3D: contracts, identity, repository, planning | Complete within G-4A3 scope |
+| Phases 4A-4F: locking, staging, journal, replacement, recovery, restart | Complete within G-4A3 scope |
+| Local validation | Recorded pass: 287 unit tests; five integration tests; one and three respective skips |
+| Four final live runs and local packaging | Passed within the explicit artifact/environment limits in the closure |
+| CodeScene/SIG residual findings | Explicitly owner-accepted; not all numerical thresholds passed |
+| Windows/Linux, PowerShell 7.4, real AllUsers, Nexus, private Azure prerelease | Outstanding qualification, not passed |
+| Reusable cross-platform infrastructure | Design proposed; not implemented |
 
 ## Delivery constraints
 
 - Work only in the PSModuleUpdate repository.
 - Treat the sibling Gerber repository as read-only evidence.
-- Preserve the untracked Nova scaffold.
+- Preserve the Nova scaffold and generated-output ownership.
 - Do not implement Gerber `/update` or change NovaModuleTools.
 - Do not hand-author `.psm1` or `.psd1` output.
 - Do not update real user modules, real AllUsers paths, existing repository
@@ -25,7 +46,7 @@ it. No incomplete phase below is implied complete by its presence in this plan.
   `Manifest.PowerShellHostVersion` 7.4.
 - Use PSResourceGet 1.2.0 as the initial provider contract baseline.
 - The local `run.ps1` and analyzer wrapper now exist and use the required Nova
-  pipeline. They remain final gates for the complete implementation.
+  pipeline. Their completed execution is recorded in the closure report.
 
 ## Target repository shape
 
@@ -469,7 +490,12 @@ When public commands exist:
 6. Keep Gerber integration documentation out of PMU command help except for a
    neutral consumer example.
 
-## Validation order
+## Validation order retained from implementation
+
+The following describes the implementation workflow, not checks rerun by this
+documentation-only closure. The recorded residual CodeScene/SIG findings have
+explicit G-4A3 owner acceptance; the historical numerical targets below do not
+authorize score-only refactoring or negate that acceptance.
 
 For each behavior increment:
 
@@ -493,14 +519,16 @@ Before implementation handoff, run in repository order:
 7. CodeScene review/score for all touched supported code, targeting 10.0
 
 Do not bypass a missing or failed wrapper with direct alternatives. Both local
-wrappers are now present; their final complete-scope execution is still required.
+wrappers are present; final local execution passed as recorded in the closure.
 
 Documentation-only Phase 1/2 validation is limited to Markdown structure,
 repository text formatting, diff inspection, and repository-boundary checks.
 
-## Acceptance criteria for implementation
+## Accepted implementation criteria
 
-Implementation is ready for qualification only when:
+The owner accepted the functional criteria below within the recorded environment.
+CodeScene/SIG residual findings are risk accepted, rather than an all-pass score
+gate. Additional platform qualification remains separate:
 
 - both public commands and exact parameter contracts exist
 - plan/result/error contracts are tested
@@ -524,25 +552,27 @@ Implementation is ready for qualification only when:
 | No automatic rollback | Best-effort backup/restore plus persistent next-run recovery |
 | Small short-lived coordination lock | OS exclusive lock covers recovery through completion and is keyed by module/scope/root |
 | Manifest/version verification sufficient | Manifest identity plus deterministic file-tree verification |
-| Private Azure authentication blocked | FIX1 resumed run qualified authentication, exact discovery, and save; install/prerelease/dependencies remain unverified |
+| Private Azure authentication blocked | Final G-4A3 stable install and unregistered HTTPS-v3 transport passed; private prerelease and broader dependency behavior remain unverified |
 | AllUsers not supported | Required in code; successful real mutation remains an explicit qualification gap |
 | Active and installed version treated closely | Active, selected installed, exact target, and restart state are separate contracts |
 
-## Open questions / resume here
+## Separate qualification phase / resume here
 
-No product-design questions block implementation. Approved decisions are
-recorded in `DECISIONS.md`.
+No product-design questions reopen the completed G-4A3 implementation. Approved
+closure is recorded in `DECISIONS.md`; infrastructure choices in the
+[strategy](CROSS_PLATFORM_TESTING.md) remain proposals requiring approval.
 
-Nonblocking evidence gaps to resolve during implementation and qualification:
+Evidence gaps to resolve through the new qualification roadmap:
 
 - exact cross-platform PMU data-directory locations and permissions
 - maintained compatibility rows beyond PSResourceGet 1.2.0
 - successful disposable AllUsers execution
 - Windows loaded-file replacement behavior
-- end-to-end hard-kill journal repair
-- private-feed install/prerelease/dependency behavior
+- real-provider and additional-platform hard-kill journal repair, beyond the
+  passed macOS controlled-process fixtures
+- private-feed prerelease/dependency behavior beyond the passed stable updates
 
-Next action: use the `powershell-developer` implementation role for Phase 3A,
-starting with red public-contract tests. Use the `test-engineer` role later for
-the independent qualification matrix. This plan does not authorize Gerber
-integration.
+Next action: approve the testing architecture, ownership, costs, and initial
+matrix in [the qualification roadmap](TEST_IMPLEMENTATION_ROADMAP.md), then
+authorize its phases separately. Do not restart Phase 3A, refactor to chase
+scores, implement Gerber integration, or change Nova Init as part of closure.

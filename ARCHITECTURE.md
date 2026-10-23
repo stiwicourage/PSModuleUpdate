@@ -11,7 +11,10 @@ installed-module inventory.
 This document is the implementation architecture for G-4A3. It transfers the
 approved G-4A1 contract and the superseding G-4A2-FIX2 decisions into the PMU
 repository. Source, tests, and command help now exist; this architecture is
-not a substitute for executed qualification or a passing readiness gate.
+not a substitute for executed qualification. G-4A3 is now functionally complete
+and owner-accepted within its qualified scope; see
+[closure evidence and accepted findings](G4A3_CLOSURE.md). Remaining environment
+qualification is a separate phase, not a universal production-readiness claim.
 
 The historical evidence remains owned by the read-only sibling Gerber
 repository:
@@ -505,19 +508,26 @@ the public commands.
 
 ## Qualification boundary
 
-Historical executable evidence covers macOS PowerShell 7.6.6 and PSResourceGet
-1.2.0 for CurrentUser installation, same-base replacement mechanics, locking,
-selected rollback paths, and private-feed discovery/save. The following remain
-unverified until Phase 6 qualification:
+Final G-4A3 evidence covers macOS PowerShell 7.6.6 and PSResourceGet 1.2.0 for
+disposable CurrentUser installation, native local prerelease progression,
+controlled-process recovery/concurrency, public PSGallery installation,
+NuGet.org nonmodule rejection, authenticated private Azure stable installation,
+and unregistered private HTTPS-v3 transport. See [the closure](G4A3_CLOSURE.md)
+for artifact identity, original reports, test counts, and accepted quality
+findings. The following remain unverified in the separate
+[cross-platform qualification phase](CROSS_PLATFORM_TESTING.md):
 
 - PowerShell 7.4 execution
 - Windows and Linux behavior
 - successful AllUsers installation and replacement
 - real Windows loaded-file replacement behavior
-- hard-kill journal recovery end to end
-- two real cooperating replacement processes
-- private-feed installation, prerelease, and dependency behavior
+- real-provider interruption and VM-restart recovery beyond passed macOS
+  controlled-provider process fixtures
+- private Azure prerelease progression and broader dependency behavior
+- live Nexus and separately executed unregistered public HTTPS transport
 - later PSResourceGet versions
 
-These gaps do not reduce the required implementation scope and must not be
-described as passed.
+These gaps must not be described as passed. They do not reopen the accepted
+functional implementation. New findings from qualification may justify later
+behavior fixes; numerical CodeScene/SIG findings alone do not authorize changes
+to the public API or mechanical function/branch restructuring.

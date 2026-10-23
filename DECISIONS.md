@@ -7,6 +7,10 @@
   finding.
 - **QUALIFICATION GAP**: implementation is required, but executable support
   evidence is incomplete.
+- **ACCEPTED / CLOSED**: owner-approved completed scope; outstanding
+  qualification and accepted risks remain explicitly recorded.
+- **PROPOSED** testing architecture: not approved or implemented merely because
+  it is documented in the strategy.
 
 ## D-001 — Independent module ownership (DECIDED)
 
@@ -272,3 +276,34 @@ original no-registration-write planning policy. Normal and fully bound stale
 cleanup validate exact ownership; the registration-to-API-binding crash window
 fails closed and can require manual intervention. That boundary and
 non-cooperating writer limitations are explicit, not atomic-cleanup claims.
+
+## D-022 — G-4A3 functional closure and quality acceptance (ACCEPTED / CLOSED)
+
+On 2026-10-23 the owner accepted G-4A3 as functionally complete within the
+qualified macOS PowerShell 7.6.6 / PSResourceGet 1.2.0 scope.
+[G4A3_CLOSURE.md](G4A3_CLOSURE.md) preserves the final reports, artifact
+identity, 287 unit/five integration passes and their skips, four separate live
+runs, packaging evidence, and the outstanding platform/provider gaps.
+
+The owner explicitly accepts the recorded CodeScene 9.68/five-parameter public
+command finding and the eight manual SIG findings. Status is **risk accepted**,
+not an assertion that all quality thresholds passed. Scores are indicators, not
+absolute G-4A3 acceptance requirements. Do not alter the approved public API,
+split coherent functions, or rewrite branches merely to satisfy parameter,
+line-count, or complexity targets. Test/support and production responsibilities
+can have legitimately different complexity characteristics.
+
+This is a bounded acceptance of the existing implementation, not a blanket
+waiver for future defects or a rewrite of shared quality instructions. No
+implementation/tests/refactoring are authorized by closure. The resolved
+pre-initial-commit Git-hook HEAD issue requires no Nova Init change.
+
+## D-023 — Separate cross-platform qualification design (PROPOSED)
+
+The [cross-platform strategy](CROSS_PLATFORM_TESTING.md),
+[technology comparison](TEST_TECHNOLOGY_COMPARISON.md),
+[matrix](TEST_MATRIX.md), and [roadmap](TEST_IMPLEMENTATION_ROADMAP.md)
+propose reusable infrastructure for PMU, Gerber Core, and future modules.
+They do not qualify any new platform or authorize pipeline/container/VM
+implementation. Ownership, CI provider, architecture coverage, privileged
+environments, and credential infrastructure require owner approval.

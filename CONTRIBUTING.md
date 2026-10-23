@@ -2,6 +2,11 @@
 
 Thank you for contributing. Keep changes small, reviewable, and easy to validate.
 
+G-4A3's [accepted closure](G4A3_CLOSURE.md) is separate from future platform
+qualification. Review the proposed [cross-platform strategy](CROSS_PLATFORM_TESTING.md)
+before implementing testing infrastructure; its matrices and roadmap are not
+currently available commands or pipelines.
+
 Before opening a pull request:
 
 - run `pwsh -NoLogo -NoProfile -File ./run.ps1`; see [testing and qualification](TESTING.md) for entrypoints and isolation requirements

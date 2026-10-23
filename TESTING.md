@@ -87,20 +87,30 @@ not establish cross-platform compatibility.
 
 ## Platform and provider qualification
 
-The historical provider baseline is macOS, PowerShell 7.6.6, and PSResourceGet
-1.2.0. Historical evidence is not execution evidence for the new PMU module.
+G-4A3 is functionally complete and accepted within the final-artifact macOS,
+PowerShell 7.6.6, and PSResourceGet 1.2.0 evidence. See
+[closure](G4A3_CLOSURE.md) for counts, skips, quality acceptance and provenance.
+Earlier provider-only evidence is not execution evidence for a different PMU
+artifact.
 
 The following require explicit executed qualification:
 
 - PowerShell 7.4 on Windows, macOS, and Linux
 - successful authorized AllUsers installation and replacement
 - Windows loaded-file replacement behavior
-- process-termination recovery and cooperating-update races
-- authenticated private-feed installation, prereleases, and dependencies
+- real-provider process termination, VM restart, and additional-platform
+  recovery/races beyond the passed macOS controlled-process fixtures
+- private-feed prerelease progression and broader dependencies beyond the
+  passed authenticated stable installations
+- live Nexus
 - later PSResourceGet versions
 
 See [the implementation plan](PLAN.md) for delivery criteria and
 [recovery guidance](RECOVERY.md) for the recovery guarantee boundary.
+The proposed [cross-platform testing strategy](CROSS_PLATFORM_TESTING.md)
+defines a separate qualification phase, environment safety rules, minimum and
+extended matrices, and approval decisions. None of that infrastructure is
+implemented by the strategy documentation.
 
 ## Opt-in live repository checks
 
@@ -179,4 +189,5 @@ Private Azure prerelease progression remains **NOT TESTED**. HashUtil had no
 previews; that does not establish the absence of previews across the feed.
 Nexus, Windows/Linux, PowerShell 7.4 execution, real AllUsers writes, and later
 provider versions remain separate qualification gaps. Coverage was not
-measured. Passing these scenarios does not override unmet quality gates.
+measured. The owner explicitly accepted the remaining CodeScene/SIG findings;
+this is recorded risk acceptance, not a claim that all thresholds passed.

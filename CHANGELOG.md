@@ -23,6 +23,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   no automatic elevation, credential persistence, or module reload.
 - Standalone architecture, decision, implementation, recovery, and testing
   documentation, including explicit platform and provider qualification limits.
+  G-4A3 is closed as functionally complete within the recorded qualified scope,
+  with explicitly accepted quality findings and preserved historical evidence.
+  A proposed reusable cross-platform strategy, technology comparison, minimum
+  and extended matrices, and phased roadmap separate future PMU/Gerber Core
+  qualification from completed development; no testing infrastructure is added.
 - Local Nova quality entrypoints with strict ScriptAnalyzer findings,
   build/unit/integration ordering, failure propagation, and formatting checks.
   Compatible installed Pester selection prevents a Pester 5/6 assembly collision.

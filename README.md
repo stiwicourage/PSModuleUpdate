@@ -135,6 +135,12 @@ the runtime target is not a claim that those environments have been tested.
 See [testing and live repository qualification](TESTING.md) for isolated
 PSGallery, NuGet.org, and private-feed checks.
 
+**G-4A3 is functionally complete and accepted within its qualified scope.**
+See [closure evidence and accepted quality findings](G4A3_CLOSURE.md).
+Further platform/environment qualification is a separate phase described in
+the proposed [cross-platform testing strategy](CROSS_PLATFORM_TESTING.md);
+the strategy does not implement infrastructure or expand tested-platform claims.
+
 ## Agentic Copilot workflow
 
 Follow this workflow when working with Copilot in this repository.
