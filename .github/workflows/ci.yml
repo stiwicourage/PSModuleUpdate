@@ -40,16 +40,29 @@ jobs:
         with:
           persist-credentials: false
       - name: Install analyzer prerequisites
+        id: modules
         shell: pwsh
-        run: ./scripts/build/ci/Install-CiPowerShellModules.ps1 -Name Pester, PSScriptAnalyzer
+        run: ./scripts/build/ci/Install-CiPowerShellModules.ps1 -ModuleRoot "$env:RUNNER_TEMP/pmu-ci-modules-quality"
       - name: Run ScriptAnalyzer
         shell: pwsh
+        env:
+          CI_MODULE_ROOT: ${{ steps.modules.outputs.moduleRoot }}
         run: |
-          Import-Module Pester -MinimumVersion 5.7.1 -MaximumVersion 5.10.0
+          . ./scripts/build/ci/CiDependencyRoot.ps1
+          $env:PSModulePath = Get-CiIsolatedModulePath -ModuleRoot $env:CI_MODULE_ROOT
+          Import-Module Pester -RequiredVersion 5.7.1
           ./scripts/build/Invoke-ScriptAnalyzerCI.ps1
       - name: Check text file formatting
         shell: pwsh
         run: ./scripts/build/Test-TextFileFormatting.ps1
+      - name: Clean owned analyzer dependencies
+        if: ${{ always() && steps.modules.outputs.moduleRoot != '' }}
+        shell: pwsh
+        env:
+          CI_MODULE_ROOT: ${{ steps.modules.outputs.moduleRoot }}
+        run: |
+          . ./scripts/build/ci/CiDependencyRoot.ps1
+          Remove-CiDependencyRoot -Owner (Get-CiDependencyOwner -Path $env:CI_MODULE_ROOT)
 
   platform:
     name: ${{ matrix.name }}
@@ -68,19 +81,39 @@ jobs:
         shell: pwsh
         run: ./scripts/build/ci/Install-CiPowerShell.ps1 -Channel '${{ matrix.powershell }}' -RuntimeIdentifier '${{ matrix.runtimeIdentifier }}' -InstallRoot "$env:RUNNER_TEMP/pmu-powershell" -ProvisioningFile "$env:RUNNER_TEMP/provisioning.json"
       - name: Install PowerShell modules
+        id: modules
         shell: pwsh
-        run: ./scripts/build/ci/Install-CiPowerShellModules.ps1
+        env:
+          SELECTED_PWSH: ${{ steps.pwsh.outputs.executable }}
+        run: |
+          & $env:SELECTED_PWSH -NoLogo -NoProfile -File ./scripts/build/ci/Install-CiPowerShellModules.ps1 -ModuleRoot "$env:RUNNER_TEMP/pmu-ci-modules-${{ matrix.id }}"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Run lane ${{ matrix.id }}
         shell: pwsh
-        run: ./scripts/build/ci/Invoke-PlatformLane.ps1 -LaneId '${{ matrix.id }}' -ExpectedPowerShellVersion '${{ steps.pwsh.outputs.version }}' -ProvisioningFile "$env:RUNNER_TEMP/provisioning.json"
+        env:
+          SELECTED_PWSH: ${{ steps.pwsh.outputs.executable }}
+          CI_MODULE_ROOT: ${{ steps.modules.outputs.moduleRoot }}
+        run: |
+          & $env:SELECTED_PWSH -NoLogo -NoProfile -File ./scripts/build/ci/Invoke-PlatformLane.ps1 -LaneId '${{ matrix.id }}' -ExpectedPowerShellVersion '${{ steps.pwsh.outputs.version }}' -ProvisioningFile "$env:RUNNER_TEMP/provisioning.json" -ModuleRoot $env:CI_MODULE_ROOT
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload lane artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: ${{ always() }}
         with:
-          name: pmu-ci-lane-${{ matrix.id }}
+          name: pmu-ci-lane-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.id }}
           path: artifacts/ci/${{ matrix.id }}
           retention-days: 14
           if-no-files-found: warn
+      - name: Clean remaining owned lane dependencies
+        if: ${{ always() && steps.modules.outputs.moduleRoot != '' }}
+        shell: pwsh
+        env:
+          CI_MODULE_ROOT: ${{ steps.modules.outputs.moduleRoot }}
+        run: |
+          . ./scripts/build/ci/CiDependencyRoot.ps1
+          if (Test-Path -LiteralPath $env:CI_MODULE_ROOT) {
+            Remove-CiDependencyRoot -Owner (Get-CiDependencyOwner -Path $env:CI_MODULE_ROOT)
+          }
 
   ci-gate:
     name: ci-gate
@@ -92,12 +125,18 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - name: Remove stale download directory
+        shell: pwsh
+        run: |
+          if (Test-Path -LiteralPath lane-manifests) {
+            Remove-Item -LiteralPath lane-manifests -Recurse -Force
+          }
       - name: Download lane manifests
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
-        continue-on-error: true
         with:
-          pattern: pmu-ci-lane-*
+          pattern: pmu-ci-lane-${{ github.run_id }}-${{ github.run_attempt }}-*
           path: lane-manifests
+          merge-multiple: false
       - name: Evaluate required job results and lane manifests
         shell: pwsh
         env:

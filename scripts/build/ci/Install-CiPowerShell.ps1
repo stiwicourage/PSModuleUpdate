@@ -9,6 +9,7 @@ param(
 
 $script:PowerShellReleaseBase = 'https://github.com/PowerShell/PowerShell/releases/download'
 $script:PowerShellMetadataUri = 'https://raw.githubusercontent.com/PowerShell/PowerShell/master/tools/metadata.json'
+. (Join-Path $PSScriptRoot 'CiRuntimeEvidence.ps1')
 
 function Get-CiPowerShellAssetName {
     [CmdletBinding()]
@@ -170,10 +171,18 @@ function Assert-CiInstalledPowerShell {
     )
 
     $name = if ($Installation.runtimeIdentifier -like 'win-*') {'pwsh.exe'} else {'pwsh'}
-    $reported = & (Join-Path $Installation.directory $name) -NoLogo -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
-    if ($reported -ne $Installation.version) {
-        throw "Installed PowerShell reports '$reported' but '$( $Installation.version )' was requested."
+    $record = Read-CiRuntimeProbe -Executable (Join-Path $Installation.directory $name)
+    $runtime = @{
+        'win-x64' = @('Windows', 'X64')
+        'linux-x64' = @('Linux', 'X64')
+        'osx-arm64' = @('macOS', 'Arm64')
     }
+    $platform = $runtime[$Installation.runtimeIdentifier]
+    if (-not $platform) { throw 'Unsupported provisioning runtime.' }
+    $expected = @{ OperatingSystem = $platform[0]; Architecture = $platform[1]; PowerShellVersion = $Installation.version; PowerShellChannel = $Installation.channel; Executable = $record.Executable }
+    Assert-CiRuntimeRecord -Record $record -Expected $expected
+    $Installation | Add-Member -NotePropertyName executable -NotePropertyValue $record.Executable -Force
+    $Installation | Add-Member -NotePropertyName runtime -NotePropertyValue $record -Force
 }
 
 function Publish-CiPowerShellInstallation {
@@ -188,9 +197,10 @@ function Publish-CiPowerShellInstallation {
     }
     if ($env:GITHUB_OUTPUT) {
         Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "version=$( $Installation.version )"
+        Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "executable=$( $Installation.executable )"
     }
     if ($ProvisioningFile) {
-        $Installation | ConvertTo-Json | Set-Content -LiteralPath $ProvisioningFile
+        $Installation | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $ProvisioningFile
     }
 }
 

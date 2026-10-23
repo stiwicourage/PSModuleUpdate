@@ -49,6 +49,19 @@ Describe 'Get-CiLaneStatus' -Tag 'BuildTooling' {
     It 'fails when a summary is missing' {
         Get-CiLaneStatus -Mismatch @() -Phase (Build-PhaseList) -Summary @{ unit = (Build-SummaryMap).unit } | Should -Be 'failed'
     }
+
+    It 'fails when integration executed no tests despite successful phase exit' {
+        $summary = Build-SummaryMap
+        $summary.integration.Total = $summary.integration.Passed = 0
+        Get-CiLaneStatus -Phase (Build-PhaseList) -Summary $summary | Should -Be 'failed'
+    }
+
+    It 'fails when all unit tests were skipped rather than executed' {
+        $summary = Build-SummaryMap
+        $summary.unit.Passed = 0
+        $summary.unit.Skipped = 10
+        Get-CiLaneStatus -Phase (Build-PhaseList) -Summary $summary | Should -Be 'failed'
+    }
 }
 
 Describe 'Build-CiLaneManifest' -Tag 'BuildTooling' {

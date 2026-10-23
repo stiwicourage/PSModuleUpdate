@@ -42,6 +42,49 @@ Nova writes unit results to `artifacts/UnitTestResults.xml`. Coverage is disable
 in the initial scaffold configuration; test counts do not establish a measured
 coverage percentage.
 
+### Phase 1 skips and platform evidence
+
+The [Phase 1 skipped-test inventory](G4A4/PHASE1_IMPLEMENTATION.md#skipped-test-inventory)
+identifies the initial macOS unit skip (native Windows ACL metadata) and all
+three integration skips (explicitly opted-out live repository scenarios),
+along with additional Windows/Linux conditional skips. An expected skip is
+not a passing test. The ordinary Phase 1 gate must not enable live credentials
+or silently accept additional unidentified skips.
+
+Nova's summary-only NUnit XML has no per-test identities or skip reasons.
+Counts alone cannot prove that a particular permitted test was skipped:
+qualification needs matching detailed execution evidence, nonempty unit and
+integration execution, and consistent result counts.
+
+The hardened lane retains `unit-details.json` and `integration-details.json`
+alongside each summary XML and its Detailed/Ansi execution log. Exact
+file/name/OS skips are allowlisted in `scripts/build/ci/CiSkipPolicy.json`;
+an unknown skip, missing detail, mismatched count or inconclusive result
+fails qualification. The gate revalidates the retained evidence rather than
+trusting manifest counts alone. Nova's summary XML remains unchanged.
+
+The lane entrypoint provisions dependencies with `Save-Module` into a newly
+owned disposable directory, restricts child `PSModulePath` to that directory
+and the selected PowerShell's built-ins, and removes the owned directory in
+cleanup. It does not install into the developer's CurrentUser or AllUsers
+module paths. Do not uninstall an existing module to reproduce CI.
+An optional `-ModuleRoot` must be a directory created by the CI dependency
+provisioner; the lane consumes and removes it. The ordinary `run.ps1` still
+uses existing dependencies and does not install anything.
+
+The workflow and each phase invoke the provisioned absolute `pwsh` path.
+Runtime witnesses inside Nova's unit/integration runspaces verify the actual
+selected version and Pester 5.7.1; `PATH` ordering is not sufficient evidence.
+Local macOS ARM64 hardening passed under 7.4.21 and stable 7.6.8, each with
+413 unit passes/one expected skip and six integration passes/three expected
+skips. The repository wrapper, 135 BuildTooling tests and actionlint passed;
+before/after dependency and repository-store fingerprints were unchanged.
+
+GitHub's current standard public-runner reference explicitly maps `macos-15`
+to ARM64; this documented mapping does not replace runtime validation or the
+first real six-lane GitHub execution. No Windows/Linux qualification is
+inferred from local macOS results.
+
 ## Test ownership
 
 Unit tests mirror source paths under `tests/public/` and

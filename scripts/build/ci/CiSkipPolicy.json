@@ -1,0 +1,56 @@
+[
+  {
+    "file": "tests/integration/LocalProvider.Integration.Tests.ps1",
+    "name": "performs licensed offline prerelease progression, stable promotion and four-component installation",
+    "operatingSystems": ["Windows", "Linux"],
+    "reason": "The licensed offline provider fixture is currently qualified only on macOS; non-macOS qualification remains open."
+  },
+  {
+    "file": "tests/private/locking/Get-WindowsDirectoryDescriptor.Tests.ps1",
+    "name": "reads current-user ACL metadata from a disposable directory",
+    "operatingSystems": ["Linux", "macOS"],
+    "reason": "Native Windows ACL metadata requires Windows."
+  },
+  {
+    "file": "tests/repository/QualificationProcess.Tests.ps1",
+    "name": "canonicalizes the macOS temporary base before applying no-symlink installation guards",
+    "operatingSystems": ["Linux", "Windows"],
+    "reason": "macOS temporary-root canonicalization is macOS-specific."
+  },
+  {
+    "file": "tests/private/locking/Get-InstallationLockIdentity.Tests.ps1",
+    "name": "conservatively shares a lock for differently cased Windows and macOS root aliases",
+    "operatingSystems": ["Linux"],
+    "reason": "Windows/macOS case aliases are not the Linux contract."
+  },
+  {
+    "file": "tests/private/installation/Invoke-UpdateInstallation.Tests.ps1",
+    "name": "translates actual controlled-directory permission denial before acquiring a lock",
+    "operatingSystems": ["Windows"],
+    "reason": "POSIX permission-denial fixture is not supported on Windows; root execution is not a qualified CI lane."
+  },
+  {
+    "file": "tests/private/repository/Read-RepositoryReceipt.Tests.ps1",
+    "name": "rejects a symlink receipt before reading its external contents",
+    "operatingSystems": ["Windows"],
+    "reason": "The symlink fixture requires Unix link permissions."
+  },
+  {
+    "file": "tests/repository/RepositoryProtocol.Integration.Tests.ps1",
+    "name": "updates an unloaded independent ThreadJob module from PSGallery with exact source binding",
+    "operatingSystems": ["Windows", "Linux", "macOS"],
+    "reason": "Phase 1 explicitly disables live repository qualification."
+  },
+  {
+    "file": "tests/repository/RepositoryProtocol.Integration.Tests.ps1",
+    "name": "rejects a real NuGet.org nonmodule package before any installation mutation",
+    "operatingSystems": ["Windows", "Linux", "macOS"],
+    "reason": "Phase 1 explicitly disables live repository qualification."
+  },
+  {
+    "file": "tests/repository/RepositoryProtocol.Integration.Tests.ps1",
+    "name": "updates a caller-selected private module with separate credentials and credential-free results",
+    "operatingSystems": ["Windows", "Linux", "macOS"],
+    "reason": "Phase 1 has no private credentials and disables live repository qualification."
+  }
+]

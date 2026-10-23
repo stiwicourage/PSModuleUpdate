@@ -13,12 +13,17 @@ Describe 'Get-CiModuleInstallParameter' -Tag 'BuildTooling' {
         (Get-CiModuleInstallParameter -Name 'Microsoft.PowerShell.PSResourceGet').RequiredVersion | Should -Be '1.2.0'
     }
 
-    It 'installs other modules from PSGallery for the current user without prereleases' {
+    It 'saves other modules from PSGallery without persistent scope or prereleases' {
         $parameter = Get-CiModuleInstallParameter -Name 'NovaModuleTools'
 
         $parameter.Repository | Should -Be 'PSGallery'
-        $parameter.Scope | Should -Be 'CurrentUser'
+        $parameter.ContainsKey('Scope') | Should -BeFalse
         $parameter.ContainsKey('AllowPrerelease') | Should -BeFalse
         $parameter.ContainsKey('RequiredVersion') | Should -BeFalse
+    }
+
+    It 'requires an explicit disposable destination for saved modules' {
+        $parameter = Get-CiModuleInstallParameter -Name 'Pester' -ModuleRoot $TestDrive
+        $parameter.Path | Should -Be $TestDrive
     }
 }

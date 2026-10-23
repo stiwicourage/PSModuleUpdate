@@ -5,7 +5,10 @@ BeforeAll {
     function Build-NUnitFile {
         param([string]$Name, [string[]]$Case)
         $path = Join-Path $TestDrive $Name
-        $content = "<test-results name=`"Pester`"><test-suite name=`"s`"><results>$($Case -join '')</results></test-suite></test-results>"
+        $passed = @($Case | Where-Object { $_ -match 'result="Success"' }).Count
+        $skipped = @($Case | Where-Object { $_ -match 'result="Ignored"' }).Count
+        $failed = $Case.Count - $passed - $skipped
+        $content = "<test-results name=`"Pester`" total=`"$($Case.Count)`" errors=`"0`" failures=`"$failed`" inconclusive=`"0`" skipped=`"$skipped`"><test-suite name=`"s`" total=`"$($Case.Count)`" passed=`"$passed`" failed=`"$failed`" skipped=`"$skipped`"><results>$($Case -join '')</results></test-suite></test-results>"
         Set-Content -LiteralPath $path -Value $content
         $path
     }
@@ -66,8 +69,24 @@ Describe 'Get-CiTestResultSummary' -Tag 'BuildTooling' {
         (Get-CiTestResultSummary -Path $path).Failed | Should -Be 2
     }
 
-    It 'returns zero totals for a file without test cases' {
+    It 'rejects an empty test report instead of treating it as execution' {
         $path = Build-NUnitFile -Name 'empty.xml' -Case @()
-        (Get-CiTestResultSummary -Path $path).Total | Should -Be 0
+        { Get-CiTestResultSummary -Path $path } | Should -Throw
+    }
+
+    It 'rejects invalid summary-only NUnit evidence: <Name>' -ForEach @(
+        @{ Name = 'empty file'; Xml = '' }
+        @{ Name = 'malformed XML'; Xml = '<test-results' }
+        @{ Name = 'unrelated XML'; Xml = '<document />' }
+        @{ Name = 'multiple suites'; Xml = '<test-results total="2" errors="0" failures="0" inconclusive="0" skipped="0"><test-suite total="1" passed="1" failed="0" skipped="0" /><test-suite total="1" passed="1" failed="0" skipped="0" /></test-results>' }
+        @{ Name = 'multiple documents'; Xml = '<test-results /><test-results />' }
+        @{ Name = 'negative counts'; Xml = '<test-results total="-1" errors="0" failures="0" inconclusive="0" skipped="0"><test-suite total="-1" passed="-1" failed="0" skipped="0" /></test-results>' }
+        @{ Name = 'missing counts'; Xml = '<test-results><test-suite /></test-results>' }
+        @{ Name = 'inconsistent counts'; Xml = '<test-results total="8" errors="0" failures="0" inconclusive="0" skipped="0"><test-suite total="8" passed="7" failed="0" skipped="0" /></test-results>' }
+        @{ Name = 'fractional counts'; Xml = '<test-results total="1.5" errors="0" failures="0" inconclusive="0" skipped="0"><test-suite total="1.5" passed="1.5" failed="0" skipped="0" /></test-results>' }
+    ) {
+        $path = Join-Path $TestDrive "$Name.xml"
+        Set-Content -LiteralPath $path -Value $Xml
+        { Get-CiTestResultSummary -Path $path } | Should -Throw
     }
 }

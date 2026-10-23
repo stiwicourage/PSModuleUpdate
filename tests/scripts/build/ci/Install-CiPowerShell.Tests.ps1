@@ -70,6 +70,20 @@ Describe 'Resolve-CiPowerShellVersionTag' -Tag 'BuildTooling' {
         Resolve-CiPowerShellVersionTag -Tag 'v7.6.8' | Should -Be '7.6.8'
     }
 
+    Describe 'Assert-CiInstalledPowerShell' -Tag 'BuildTooling' {
+        It 'rejects a matching version running on the wrong OS or architecture' {
+            $installation = @{
+                directory = $PSHOME
+                version = $PSVersionTable.PSVersion.ToString()
+                runtimeIdentifier = if ($IsWindows) { 'linux-x64' } else { 'win-x64' }
+            }
+            # The executable exists, but its requested runtime identifier is deliberately wrong.
+            if (-not $IsWindows) { $installation.runtimeIdentifier = 'linux-x64' }
+            if ($IsLinux) { $installation.runtimeIdentifier = 'osx-arm64' }
+            { Assert-CiInstalledPowerShell -Installation $installation } | Should -Throw
+        }
+    }
+
     It 'rejects preview tags because stable lanes must not run previews' {
         { Resolve-CiPowerShellVersionTag -Tag 'v7.7.0-preview.5' } | Should -Throw '*stable*'
     }

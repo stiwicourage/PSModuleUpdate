@@ -11,6 +11,10 @@ Describe 'Invoke-CiLanePhase' -Tag 'BuildTooling' {
 
         $phase.Name | Should -Be 'ok'
         $phase.ExitCode | Should -Be 0
+        $phase.Environment.PowerShellVersion | Should -Be $PSVersionTable.PSVersion.ToString()
+        $phase.Environment.PowerShellEdition | Should -Be 'Core'
+        $phase.Environment.ProcessArchitecture | Should -Be ([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString())
+        $phase.Executable | Should -Be (Get-Process -Id $PID).Path
         Get-Content -LiteralPath $log -Raw | Should -Match 'hello from child'
     }
 

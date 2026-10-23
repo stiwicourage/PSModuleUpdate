@@ -4,7 +4,8 @@
 
 Four phases. Phase 1 proves the six-lane matrix with the existing tests. Phase 2
 adds PMU qualification and release gating. Phase 3 adopts the pattern in Gerber.
-Phase 4 covers extended and privileged scenarios. All phases are PROPOSED and
+Phase 4 covers extended and privileged scenarios. Phase 1 implementation and
+local hardening are authorized; Phases 2-4 remain PROPOSED and
 need owner approval before implementation. Hosted runners are free for public
 repositories; private hosting changes the cost (see [RUNNER_FEASIBILITY.md](RUNNER_FEASIBILITY.md)).
 
@@ -12,6 +13,20 @@ repositories; private hosting changes the cost (see [RUNNER_FEASIBILITY.md](RUNN
 
 **Status: IMPLEMENTED locally, not yet run on GitHub** ([record](PHASE1_IMPLEMENTATION.md)). Acceptance items
 that need real runners (first Windows/Linux results, hosted provisioning) remain open.
+
+Local hardening includes documented runner verification: GitHub explicitly
+maps `macos-15` to ARM64 standard hosted runners for public repositories, so
+the approved label is retained. The implementation record inventories all
+four historical macOS skips and the additional platform-conditional skips.
+Documented runner support does not satisfy the six executed-lane acceptance
+criterion; the first GitHub run is still required.
+
+Hardening is locally verified with disposable dependencies and explicit executable/runtime witnesses on
+macOS ARM64, PowerShell 7.4.21 and stable 7.6.8: each lane passed 413 unit tests and six integration tests
+with the same four documented skips. The isolated repository quality wrapper, 135 BuildTooling tests,
+analyzer, formatting and actionlint passed. Before/after module and repository-store fingerprints were
+unchanged. The hardened gate requires current-run complete qualification evidence, not merely a successful
+aggregate matrix job. These local results do not close the hosted-runner acceptance items.
 
 | Item | Content |
 | --- | --- |
@@ -55,4 +70,4 @@ that need real runners (first Windows/Linux results, hosted provisioning) remain
 | Approvals | D-4A4-09, D-4A4-11, D-4A4-12 |
 | Cost | Nightly macOS minutes if private |
 
-Implementation does not start until these are approved. No phase changes Nova.
+Phases 2-4 do not start until separately approved. No phase changes Nova.

@@ -54,3 +54,10 @@ The [G-4A4 plan](docs/architecture/G4A4/README.md) designs the GitHub Actions ma
 artifacts and local validation. To reproduce a lane locally, run
 `pwsh -NoLogo -NoProfile -File ./scripts/build/ci/Invoke-PlatformLane.ps1 -LaneId <lane-id>` on a matching OS,
 architecture and PowerShell version; a mismatching host fails by design.
+Use the absolute provisioned `pwsh` path when reproducing a selected CI version.
+The lane saves dependencies into an owned temporary module directory, passes
+its isolated `PSModulePath` to every child and removes that directory afterward;
+it does not install dependencies in CurrentUser or AllUsers. Existing
+PSResourceGet repository state is preserved by the provider fixtures, not by
+assuming that `HOME` or `PSModulePath` redirects registrations. Unexpected
+skips and incomplete XML/log/runtime evidence fail the lane.

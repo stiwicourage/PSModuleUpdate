@@ -3,12 +3,16 @@ param(
     [string]$LaneId,
     [string]$ExpectedPowerShellVersion,
     [string]$ProvisioningFile,
+    [string]$ModuleRoot,
     [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
 )
 
 . (Join-Path $PSScriptRoot 'CiLaneEnvironment.ps1')
 . (Join-Path $PSScriptRoot 'CiTestResultSummary.ps1')
 . (Join-Path $PSScriptRoot 'CiLaneManifest.ps1')
+. (Join-Path $PSScriptRoot 'CiRuntimeEvidence.ps1')
+. (Join-Path $PSScriptRoot 'CiDependencyRoot.ps1')
+. (Join-Path $PSScriptRoot 'CiTestDetail.ps1')
 
 function Get-CiLaneDefinition {
     [CmdletBinding()]
@@ -31,25 +35,44 @@ function Invoke-CiLanePhase {
         [Parameter(Mandatory)][string]$Name,
         [Parameter(Mandatory)][string]$Command,
         [Parameter(Mandatory)][string]$LogPath,
-        [Parameter(Mandatory)][string]$WorkingDirectory
+        [Parameter(Mandatory)][string]$WorkingDirectory,
+        $Context
     )
 
     $watch = [System.Diagnostics.Stopwatch]::StartNew()
-    Push-Location -LiteralPath $WorkingDirectory
-    try {
-        $script = "`$ErrorActionPreference='Stop'; $Command"
-        & (Get-Process -Id $PID).Path -NoLogo -NoProfile -Command $script 2>&1 | Tee-Object -FilePath $LogPath | Out-Host
-        $exitCode = $LASTEXITCODE
-    } finally {
-        Pop-Location
-    }
+    $launch = Get-CiPhaseContext -Name $Name -LogPath $LogPath -Context $Context
+    $launch.WorkingDirectory = $WorkingDirectory
+    $launch.Command = $Command
+    $contextFile = "$LogPath.context.json"
+    $launch | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $contextFile
+    & $launch.Expected.Executable -NoLogo -NoProfile -File (Join-Path $PSScriptRoot 'Invoke-CiPhaseProcess.ps1') -ContextFile $contextFile 2>&1 |
+            Tee-Object -FilePath $LogPath | Out-Host
+    $exitCode = $LASTEXITCODE
+    $runtime = if (Test-Path -LiteralPath $launch.RuntimePath) { Get-Content -LiteralPath $launch.RuntimePath -Raw | ConvertFrom-Json }
 
     return [pscustomobject][ordered]@{
         Name = $Name
         ExitCode = $exitCode
         DurationSeconds = [math]::Round($watch.Elapsed.TotalSeconds, 1)
         LogFile = Split-Path -Leaf $LogPath
+        RuntimeFile = Split-Path -Leaf $launch.RuntimePath
+        TestRuntimeFile = Split-Path -Leaf $launch.TestRuntimePath
+        Environment = $runtime.Environment
+        Executable = $runtime.Executable
+        ProcessId = $runtime.ProcessId
     }
+}
+
+function Get-CiPhaseContext {
+    param([string]$Name, [string]$LogPath, $Context)
+
+    if (-not $Context) {
+        $actual = Get-CiRuntimeRecord
+        $Context = @{ Expected = @{ OperatingSystem = $actual.Environment.OperatingSystem; Architecture = $actual.Environment.ProcessArchitecture; PowerShellVersion = $actual.Environment.PowerShellVersion; PowerShellChannel = 'stable'; Executable = $actual.Executable }; Identity = @{} }
+    }
+    $identity = @{} + $Context.Identity
+    $identity.phase = $Name
+    return @{ Expected = $Context.Expected; Identity = $identity; RuntimePath = "$LogPath.runtime.json"; TestRuntimePath = "$LogPath.test-runtime.json" }
 }
 
 function Get-CiModuleVersion {
@@ -57,7 +80,7 @@ function Get-CiModuleVersion {
     param()
 
     $module = @{}
-    foreach ($name in 'Pester', 'NovaModuleTools', 'PSScriptAnalyzer', 'Microsoft.PowerShell.PSResourceGet') {
+    foreach ($name in 'Pester', 'NovaModuleTools', 'PSScriptAnalyzer', 'Microsoft.PowerShell.PSResourceGet', 'Microsoft.PowerShell.PlatyPS') {
         $module[$name] = @(Get-Module -ListAvailable -Name $name | Sort-Object Version -Descending |
                 Select-Object -First 1 | ForEach-Object {$_.Version.ToString()})
     }
@@ -70,9 +93,9 @@ function Get-CiLanePhaseDefinition {
     param()
 
     return @(
-        @{Name = 'build'; Command = 'Import-Module NovaModuleTools -ErrorAction Stop; Invoke-NovaBuild'}
-        @{Name = 'unit'; Command = 'Import-Module NovaModuleTools -ErrorAction Stop; Invoke-NovaTest'}
-        @{Name = 'integration'; Command = 'Import-Module NovaModuleTools -ErrorAction Stop; Test-NovaBuild'}
+        @{Name = 'build'; Command = 'Import-Module Pester -RequiredVersion 5.7.1; Import-Module NovaModuleTools -ErrorAction Stop; Invoke-NovaBuild'}
+        @{Name = 'unit'; Command = 'Import-Module Pester -RequiredVersion 5.7.1; Import-Module NovaModuleTools -ErrorAction Stop; Invoke-NovaTest -OutputVerbosity Detailed -OutputRenderMode Ansi'}
+        @{Name = 'integration'; Command = 'Import-Module Pester -RequiredVersion 5.7.1; Import-Module NovaModuleTools -ErrorAction Stop; Test-NovaBuild -OutputVerbosity Detailed -OutputRenderMode Ansi'}
     )
 }
 
@@ -80,13 +103,14 @@ function Invoke-CiLanePhaseSet {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$RepositoryRoot,
-        [Parameter(Mandatory)][string]$LogDirectory
+        [Parameter(Mandatory)][string]$LogDirectory,
+        [Parameter(Mandatory)]$Context
     )
 
     $result = @()
     foreach ($definition in Get-CiLanePhaseDefinition) {
         $log = Join-Path $LogDirectory "$( $definition.Name ).log"
-        $result += Invoke-CiLanePhase -Name $definition.Name -Command $definition.Command -LogPath $log -WorkingDirectory $RepositoryRoot
+        $result += Invoke-CiLanePhase -Name $definition.Name -Command $definition.Command -LogPath $log -WorkingDirectory $RepositoryRoot -Context $Context
         if ($result[-1].ExitCode -ne 0) {
             break
         }
@@ -112,6 +136,11 @@ function Copy-CiTestResult {
         if (Test-Path -LiteralPath $path) {
             Copy-Item -LiteralPath $path -Destination (Join-Path $OutputDirectory $source[$key][1])
             $summary[$key] = Get-CiTestResultSummary -Path $path
+            $log = Join-Path $OutputDirectory "logs/$key.log"
+            $detail = @(Read-CiTestDetail -Path $log)
+            Assert-CiTestDetail -Summary $summary[$key] -Detail $detail -OperatingSystem (Get-CiLaneOperatingSystem)
+            $detail | ConvertTo-Json -Depth 4 -AsArray | Set-Content -LiteralPath (Join-Path $OutputDirectory "$key-details.json")
+            $summary[$key].SkippedName = @($detail | Where-Object Result -eq 'Skipped' | ForEach-Object { "$($_.File): $($_.Name)" })
         }
     }
 
@@ -141,63 +170,123 @@ function Write-CiLaneSummary {
     $line | Out-Host
 }
 
-function Invoke-CiLane {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)][string]$LaneId,
-        [string]$ExpectedPowerShellVersion,
-        [string]$ProvisioningFile,
-        [Parameter(Mandatory)][string]$RepositoryRoot
-    )
+function Get-CiLaneIdentity {
+    param([string]$LaneId)
+
+    $identity = @{ laneId = $LaneId; executionId = [guid]::NewGuid().ToString('N') }
+    $defaults = @{ commitSha = @('GITHUB_SHA', 'local'); runId = @('GITHUB_RUN_ID', 'local'); runAttempt = @('GITHUB_RUN_ATTEMPT', '1') }
+    foreach ($name in $defaults.Keys) {
+        $value = [Environment]::GetEnvironmentVariable($defaults[$name][0])
+        $identity[$name] = if ($value) { $value } else { $defaults[$name][1] }
+    }
+    return $identity
+}
+
+function Get-CiLaneRun {
+    param([string]$LaneId, [string]$Version, [string]$RepositoryRoot, [string]$ProvisioningFile)
 
     $lane = Get-CiLaneDefinition -LaneId $LaneId
-    $output = Join-Path $RepositoryRoot "artifacts/ci/$LaneId"
-    $logDirectory = Join-Path $output 'logs'
-    New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
-    $PSVersionTable | Out-String | Set-Content -LiteralPath (Join-Path $output 'PSVersionTable.txt')
-
     $actual = Get-CiLaneEnvironment
-    $version = if ($ExpectedPowerShellVersion) {$ExpectedPowerShellVersion} else {$actual.PowerShellVersion}
-    $expected = [pscustomobject]@{
-        OperatingSystem = $lane.os
-        Architecture = $lane.architecture
-        PowerShellChannel = $lane.powershell
-        PowerShellVersion = $version
+    if (-not $Version) { $Version = $actual.PowerShellVersion }
+    $expected = @{ OperatingSystem = $lane.os; Architecture = $lane.architecture; PowerShellChannel = $lane.powershell; PowerShellVersion = $Version; Executable = (Get-Process -Id $PID).Path }
+    $output = Join-Path $RepositoryRoot "artifacts/ci/$LaneId"
+    return @{
+        Lane = $lane; Actual = $actual; Expected = $expected
+        Identity = Get-CiLaneIdentity -LaneId $LaneId
+        RepositoryRoot = $RepositoryRoot; Output = $output; Logs = Join-Path $output 'logs'
+        ProvisioningFile = $ProvisioningFile; Provisioning = $null
+        Phase = @(); Summary = @(); Mismatch = @()
     }
-    $mismatch = @(Test-CiLaneEnvironment -Expected $expected -Actual $actual -RequireGitHubHosted:([bool]$env:GITHUB_ACTIONS))
-    $mismatch | ForEach-Object {Write-Output "::error title=$LaneId::$_"}
+}
 
-    $phase = @()
-    $summary = @{}
-    if ($mismatch.Count -eq 0) {
-        $phase = Invoke-CiLanePhaseSet -RepositoryRoot $RepositoryRoot -LogDirectory $logDirectory
-        $summary = Copy-CiTestResult -RepositoryRoot $RepositoryRoot -OutputDirectory $output
-    }
+function Initialize-CiLaneArtifact {
+    param([Parameter(Mandatory)][hashtable]$Run)
 
-    $commit = if ($env:GITHUB_SHA) {$env:GITHUB_SHA} else {'local'}
-    $manifest = Build-CiLaneManifest -LaneId $LaneId -CommitSha $commit -Environment $actual -Mismatch $mismatch -Phase $phase -Summary $summary -Module (Get-CiModuleVersion)
-    if ($ProvisioningFile -and (Test-Path -LiteralPath $ProvisioningFile)) {
-        $manifest['provisioning'] = Get-Content -LiteralPath $ProvisioningFile -Raw | ConvertFrom-Json
+    if (Test-Path -LiteralPath $Run.Output) { Remove-Item -LiteralPath $Run.Output -Recurse -Force }
+    New-Item -ItemType Directory -Path $Run.Logs -Force | Out-Null
+    foreach ($report in 'UnitTestResults.xml', 'TestResults.xml') {
+        Remove-Item -LiteralPath (Join-Path $Run.RepositoryRoot "artifacts/$report") -Force -ErrorAction SilentlyContinue
     }
-    $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $output 'lane-manifest.json')
+    $PSVersionTable | Out-String | Set-Content -LiteralPath (Join-Path $Run.Output 'PSVersionTable.txt')
+}
+
+function Assert-CiLaneProvisioning {
+    param([Parameter(Mandatory)][hashtable]$Run)
+
+    if (-not $Run.ProvisioningFile) { return }
+    $Run.Provisioning = Get-Content -LiteralPath $Run.ProvisioningFile -Raw -ErrorAction Stop | ConvertFrom-Json
+    Assert-CiRuntimeRecord -Record $Run.Provisioning.runtime -Expected $Run.Expected
+    if ($Run.Provisioning.runtimeIdentifier -ne $Run.Lane.runtimeIdentifier) { throw 'Provisioned runtime identifier differs from lane.' }
+    if ($Run.Provisioning.version -ne $Run.Expected.PowerShellVersion) { throw 'Provisioned version differs from selected runtime.' }
+}
+
+function Invoke-CiLaneExecution {
+    param([Parameter(Mandatory)][hashtable]$Run)
+
+    $Run.Summary = @{}
+    $Run.Mismatch = @(Test-CiLaneEnvironment -Expected $Run.Expected -Actual $Run.Actual -RequireGitHubHosted:([bool]$env:GITHUB_ACTIONS))
+    if ($Run.Mismatch.Count -gt 0) { return }
+    try {
+        Assert-CiLaneProvisioning -Run $Run
+        $Run.Phase = Invoke-CiLanePhaseSet -RepositoryRoot $Run.RepositoryRoot -LogDirectory $Run.Logs -Context @{ Expected = $Run.Expected; Identity = $Run.Identity }
+        $Run.Summary = Copy-CiTestResult -RepositoryRoot $Run.RepositoryRoot -OutputDirectory $Run.Output
+        Assert-CiLaneRuntimeEvidence -Directory $Run.Logs -Phase $Run.Phase -Expected $Run.Expected -Identity $Run.Identity
+    } catch {
+        $Run.Mismatch += $_.Exception.Message
+    }
+}
+
+function Write-CiLaneManifest {
+    param([Parameter(Mandatory)][hashtable]$Run)
+
+    $manifest = Build-CiLaneManifest -LaneId $Run.Lane.id -CommitSha $Run.Identity.commitSha -Environment $Run.Actual -Mismatch $Run.Mismatch -Phase $Run.Phase -Summary $Run.Summary -Module (Get-CiModuleVersion)
+    $manifest.schemaVersion = 1
+    $manifest.configuration = $Run.Lane
+    $manifest.selectedRuntime = $Run.Expected
+    $manifest.identity = $Run.Identity
+    $manifest.provisioning = $Run.Provisioning
+    $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $Run.Output 'lane-manifest.json')
     Write-CiLaneSummary -Manifest $manifest
-
     return $manifest.status
+}
+
+function Invoke-CiLane {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$LaneId, [string]$ExpectedPowerShellVersion, [string]$ProvisioningFile, [Parameter(Mandatory)][string]$RepositoryRoot)
+
+    $run = Get-CiLaneRun -LaneId $LaneId -Version $ExpectedPowerShellVersion -RepositoryRoot $RepositoryRoot -ProvisioningFile $ProvisioningFile
+    Initialize-CiLaneArtifact -Run $run
+    Invoke-CiLaneExecution -Run $run
+    return Write-CiLaneManifest -Run $run
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
     $scratch = Join-Path ([System.IO.Path]::GetTempPath()) "pmu-lane-$( [guid]::NewGuid().ToString('N') )"
     New-Item -ItemType Directory -Path $scratch | Out-Null
-    $saved = @{TMPDIR = $env:TMPDIR; TEMP = $env:TEMP; TMP = $env:TMP}
+    $saved = @{}
+    foreach ($key in 'TMPDIR', 'TEMP', 'TMP', 'PATH', 'PSModulePath', 'PMU_QUALIFICATION_LIVE', 'PMU_CI_TEST_RUNTIME_PATH', 'PMU_CI_RUNTIME_CONTEXT') {
+        $saved[$key] = [Environment]::GetEnvironmentVariable($key)
+    }
     $env:TMPDIR = $env:TEMP = $env:TMP = $scratch
     Remove-Item Env:PMU_QUALIFICATION_LIVE -ErrorAction SilentlyContinue
     try {
+        if (-not $ModuleRoot) {
+            $ModuleRoot = Join-Path $scratch "pmu-ci-modules-$([guid]::NewGuid().ToString('N'))"
+            & (Get-Process -Id $PID).Path -NoLogo -NoProfile -File (Join-Path $PSScriptRoot 'Install-CiPowerShellModules.ps1') -ModuleRoot $ModuleRoot
+            if ($LASTEXITCODE -ne 0) { throw 'Disposable dependency provisioning failed.' }
+        }
+        $owner = Get-CiDependencyOwner -Path $ModuleRoot
+        $env:PSModulePath = Get-CiIsolatedModulePath -ModuleRoot $owner.Path
+        $env:PATH = (Split-Path -Parent (Get-Process -Id $PID).Path) + [IO.Path]::PathSeparator + $saved.PATH
+        $resolved = (Get-Command pwsh -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+        if ($resolved -ne (Get-Process -Id $PID).Path) { throw 'pwsh command resolution does not match the selected executable.' }
+        & (Get-Process -Id $PID).Path -NoLogo -NoProfile -File (Join-Path $PSScriptRoot 'CiDependencyProbe.ps1') -ModuleRoot $owner.Path
+        if ($LASTEXITCODE -ne 0) { throw 'Dependency validation failed.' }
         $status = Invoke-CiLane -LaneId $LaneId -ExpectedPowerShellVersion $ExpectedPowerShellVersion -ProvisioningFile $ProvisioningFile -RepositoryRoot $RepositoryRoot
     } finally {
-        $env:TMPDIR = $saved.TMPDIR
-        $env:TEMP = $saved.TEMP
-        $env:TMP = $saved.TMP
-        Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
+        foreach ($key in $saved.Keys) { [Environment]::SetEnvironmentVariable($key, $saved[$key]) }
+        if ($owner) { Remove-CiDependencyRoot -Owner $owner }
+        Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction Stop
     }
     if ($status -ne 'passed') {
         exit 1

@@ -13,17 +13,17 @@ function Test-CiSummaryHealthy {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][hashtable]$Summary,
-        [Parameter(Mandatory)][string]$Key,
-        [switch]$RequireTest
+        [Parameter(Mandatory)][string]$Key
     )
 
     if (-not $Summary.ContainsKey($Key)) {
         return $false
     }
     $entry = $Summary[$Key]
-    $hasTest = -not $RequireTest -or $entry.Total -gt 0
+    $hasTest = $entry.Total -gt 0 -and $entry.Passed -gt 0
+    $consistent = $entry.Total -eq ($entry.Passed + $entry.Failed + $entry.Skipped)
 
-    return $hasTest -and $entry.Failed -eq 0
+    return $hasTest -and $consistent -and $entry.Failed -eq 0
 }
 
 function Get-CiLaneStatus {
@@ -35,7 +35,7 @@ function Get-CiLaneStatus {
     )
 
     $phaseHealthy = @('build', 'unit', 'integration' | Where-Object {-not (Test-CiPhaseSucceeded -Phase $Phase -Name $_)}).Count -eq 0
-    $summaryHealthy = (Test-CiSummaryHealthy -Summary $Summary -Key 'unit' -RequireTest) -and (Test-CiSummaryHealthy -Summary $Summary -Key 'integration')
+    $summaryHealthy = (Test-CiSummaryHealthy -Summary $Summary -Key 'unit') -and (Test-CiSummaryHealthy -Summary $Summary -Key 'integration')
     $check = @(
         @($Mismatch).Count -eq 0
         $phaseHealthy

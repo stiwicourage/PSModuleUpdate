@@ -73,4 +73,21 @@ Describe 'CI workflow security and gate policy' -Tag 'BuildTooling' {
     It 'does not persist checkout credentials' {
         $script:ci | Should -Match 'persist-credentials:\s*false'
     }
+
+    It 'invokes the provisioned executable explicitly for dependency provisioning and the lane' {
+        $script:ci | Should -Match 'steps\.pwsh\.outputs\.executable'
+        $script:ci | Should -Match 'ModuleRoot'
+    }
+
+    It 'binds named artifacts to the current run and attempt without cross-run download credentials' {
+        $script:ci | Should -Match 'pmu-ci-lane-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}-'
+        $script:ci | Should -Not -Match 'github-token:'
+        $script:ci | Should -Match 'merge-multiple:\s*false'
+    }
+
+    It 'cannot mask an artifact download or digest verification failure' {
+        $download = [regex]::Match($script:ci, '(?ms)^      - name: Download lane manifests\r?\n.*?(?=^      - name:|\z)').Value
+        $download | Should -Not -BeNullOrEmpty
+        $download | Should -Not -Match 'continue-on-error:\s*true'
+    }
 }
