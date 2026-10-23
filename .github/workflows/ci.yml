@@ -1,0 +1,105 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.ref) || format('ci-run-{0}-{1}', github.run_id, github.run_attempt) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Build platform matrix from CiLanes.json
+        id: matrix
+        shell: pwsh
+        run: ./scripts/build/ci/Get-CiPlatformMatrix.ps1
+
+  quality:
+    name: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install analyzer prerequisites
+        shell: pwsh
+        run: ./scripts/build/ci/Install-CiPowerShellModules.ps1 -Name Pester, PSScriptAnalyzer
+      - name: Run ScriptAnalyzer
+        shell: pwsh
+        run: |
+          Import-Module Pester -MinimumVersion 5.7.1 -MaximumVersion 5.10.0
+          ./scripts/build/Invoke-ScriptAnalyzerCI.ps1
+      - name: Check text file formatting
+        shell: pwsh
+        run: ./scripts/build/Test-TextFileFormatting.ps1
+
+  platform:
+    name: ${{ matrix.name }}
+    needs: plan
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Provision PowerShell ${{ matrix.powershell }}
+        id: pwsh
+        shell: pwsh
+        run: ./scripts/build/ci/Install-CiPowerShell.ps1 -Channel '${{ matrix.powershell }}' -RuntimeIdentifier '${{ matrix.runtimeIdentifier }}' -InstallRoot "$env:RUNNER_TEMP/pmu-powershell" -ProvisioningFile "$env:RUNNER_TEMP/provisioning.json"
+      - name: Install PowerShell modules
+        shell: pwsh
+        run: ./scripts/build/ci/Install-CiPowerShellModules.ps1
+      - name: Run lane ${{ matrix.id }}
+        shell: pwsh
+        run: ./scripts/build/ci/Invoke-PlatformLane.ps1 -LaneId '${{ matrix.id }}' -ExpectedPowerShellVersion '${{ steps.pwsh.outputs.version }}' -ProvisioningFile "$env:RUNNER_TEMP/provisioning.json"
+      - name: Upload lane artifacts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: ${{ always() }}
+        with:
+          name: pmu-ci-lane-${{ matrix.id }}
+          path: artifacts/ci/${{ matrix.id }}
+          retention-days: 14
+          if-no-files-found: warn
+
+  ci-gate:
+    name: ci-gate
+    needs: [plan, quality, platform]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Download lane manifests
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        continue-on-error: true
+        with:
+          pattern: pmu-ci-lane-*
+          path: lane-manifests
+      - name: Evaluate required job results and lane manifests
+        shell: pwsh
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: ./scripts/build/ci/Assert-CiGate.ps1 -ManifestDirectory lane-manifests

@@ -10,6 +10,9 @@ repositories; private hosting changes the cost (see [RUNNER_FEASIBILITY.md](RUNN
 
 ## Phase 1: Platform matrix
 
+**Status: IMPLEMENTED locally, not yet run on GitHub** ([record](PHASE1_IMPLEMENTATION.md)). Acceptance items
+that need real runners (first Windows/Linux results, hosted provisioning) remain open.
+
 | Item | Content |
 | --- | --- |
 | Deliverables | `ci.yml` with quality job, six-lane platform matrix and `ci-gate`; lane script; PowerShell provisioning with hash check; lane manifest; NUnit artifacts |

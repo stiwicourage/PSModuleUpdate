@@ -2,14 +2,14 @@
 
 Thank you for contributing. Keep changes small, reviewable, and easy to validate.
 
-G-4A3's [accepted closure](G4A3_CLOSURE.md) is separate from future platform
-qualification. Review the proposed [cross-platform strategy](CROSS_PLATFORM_TESTING.md)
+G-4A3's [accepted closure](docs/architecture/G4A3_CLOSURE.md) is separate from future platform
+qualification. Review the proposed [cross-platform strategy](docs/architecture/CROSS_PLATFORM_TESTING.md)
 before implementing testing infrastructure; its matrices and roadmap are not
 currently available commands or pipelines.
 
 Before opening a pull request:
 
-- run `pwsh -NoLogo -NoProfile -File ./run.ps1`; see [testing and qualification](TESTING.md) for entrypoints and isolation requirements
+- run `pwsh -NoLogo -NoProfile -File ./run.ps1`; see [testing and qualification](docs/architecture/TESTING.md) for entrypoints and isolation requirements
 - update tests when behavior changes
 - keep tests mirrored to changed source files: one focused `.Tests.ps1` file for every new or changed `src/**/*.ps1` file
 - use `tests/TestHelpers/` or test-support files for shared setup instead of broad catch-all test files
@@ -48,4 +48,9 @@ Recommended flow:
 4. **Prepare release**
     - Use `/agent release-manager`, `.github/agents/release-manager.agent.md`, and `.github/prompts/prepare-release.prompt.md` when release-facing files change.
 
-The [G-4A4 plan](G4A4/README.md) proposes the GitHub Actions matrix and release gating; it is not yet implemented.
+The [G-4A4 plan](docs/architecture/G4A4/README.md) designs the GitHub Actions matrix and release gating. Phase 1
+(`.github/workflows/ci.yml`, `scripts/build/ci/`) is implemented locally but has **not yet run on GitHub**; see
+[PHASE1_IMPLEMENTATION.md](docs/architecture/G4A4/PHASE1_IMPLEMENTATION.md) for triggers, lanes, the `ci-gate`,
+artifacts and local validation. To reproduce a lane locally, run
+`pwsh -NoLogo -NoProfile -File ./scripts/build/ci/Invoke-PlatformLane.ps1 -LaneId <lane-id>` on a matching OS,
+architecture and PowerShell version; a mismatching host fails by design.

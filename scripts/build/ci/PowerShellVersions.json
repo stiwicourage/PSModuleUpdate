@@ -1,0 +1,12 @@
+{
+  "channels": {
+    "7.4": {
+      "version": "7.4.21",
+      "sha256": {
+        "win-x64": "b47ee814b9fe5fe6b713a26667998cadd6bbb74cb3889fadea56c775f11953a2",
+        "linux-x64": "3fc5e1567c450bd7bd5ae69ebb0a9a4a4e0418bbc36b0232cf6dd547f0bfc0eb",
+        "osx-arm64": "f1a3fe4e7b75c5220cfffc6ec0d1c1189610bed187537d3d7c4cfaebfff58f9e"
+      }
+    }
+  }
+}

@@ -90,7 +90,7 @@ the provider accepts names, not direct URIs. PMU uses owned random names,
 separate per-user coordination, and nonsecret cleanup receipts without
 changing existing registrations or trust. Install `-WhatIf` creates no
 registration. Interrupted API binding can require manual review; see
-[recovery and transport safety](RECOVERY.md).
+[recovery and transport safety](docs/architecture/RECOVERY.md).
 
 Obtain `$credential` through your approved secret-management workflow. PMU
 does not read a particular environment variable or install credential providers.
@@ -126,19 +126,19 @@ module is never automatically removed or re-imported. Restart when the result
 requires it, including when loaded files were replaced without changing the
 displayed numeric version.
 
-See [recovery guidance](RECOVERY.md), [architecture](ARCHITECTURE.md),
-[decisions](DECISIONS.md), and the
-[implementation and qualification plan](PLAN.md) for safety contracts,
+See [recovery guidance](docs/architecture/RECOVERY.md), [architecture](docs/architecture/ARCHITECTURE.md),
+[decisions](docs/architecture/DECISIONS.md), and the
+[implementation and qualification plan](docs/architecture/PLAN.md) for safety contracts,
 limitations, and outstanding qualification. Windows, Linux, PowerShell 7.4,
 and successful real AllUsers mutation require their own executed qualification;
 the runtime target is not a claim that those environments have been tested.
-See [testing and live repository qualification](TESTING.md) for isolated
+See [testing and live repository qualification](docs/architecture/TESTING.md) for isolated
 PSGallery, NuGet.org, and private-feed checks.
 
 **G-4A3 is functionally complete and accepted within its qualified scope.**
-See [closure evidence and accepted quality findings](G4A3_CLOSURE.md).
+See [closure evidence and accepted quality findings](docs/architecture/G4A3_CLOSURE.md).
 Further platform/environment qualification is a separate phase described in
-the proposed [cross-platform testing strategy](CROSS_PLATFORM_TESTING.md);
+the proposed [cross-platform testing strategy](docs/architecture/CROSS_PLATFORM_TESTING.md);
 the strategy does not implement infrastructure or expand tested-platform claims.
 
 ## Agentic Copilot workflow

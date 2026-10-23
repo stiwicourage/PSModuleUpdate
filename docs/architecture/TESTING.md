@@ -10,6 +10,11 @@ defined by `project.json`; the module root and manifest are generated under
 pwsh -NoLogo -NoProfile -File ./run.ps1
 ```
 
+GitHub Actions (`.github/workflows/ci.yml`, not yet run on GitHub) runs the same Nova build, unit and
+integration phases per platform lane through
+`./scripts/build/ci/Invoke-PlatformLane.ps1 -LaneId <lane-id>`; see
+[G4A4/PHASE1_IMPLEMENTATION.md](G4A4/PHASE1_IMPLEMENTATION.md).
+
 The local wrapper runs, in order:
 
 1. `scripts/build/Invoke-ScriptAnalyzerCI.ps1`

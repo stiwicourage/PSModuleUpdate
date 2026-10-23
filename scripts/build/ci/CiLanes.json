@@ -1,0 +1,58 @@
+{
+  "lanes": [
+    {
+      "id": "windows-x64-ps74",
+      "name": "Windows x64 / PowerShell 7.4",
+      "runner": "windows-2025",
+      "os": "Windows",
+      "architecture": "X64",
+      "runtimeIdentifier": "win-x64",
+      "powershell": "7.4"
+    },
+    {
+      "id": "windows-x64-psstable",
+      "name": "Windows x64 / PowerShell stable",
+      "runner": "windows-2025",
+      "os": "Windows",
+      "architecture": "X64",
+      "runtimeIdentifier": "win-x64",
+      "powershell": "stable"
+    },
+    {
+      "id": "linux-x64-ps74",
+      "name": "Linux x64 / PowerShell 7.4",
+      "runner": "ubuntu-24.04",
+      "os": "Linux",
+      "architecture": "X64",
+      "runtimeIdentifier": "linux-x64",
+      "powershell": "7.4"
+    },
+    {
+      "id": "linux-x64-psstable",
+      "name": "Linux x64 / PowerShell stable",
+      "runner": "ubuntu-24.04",
+      "os": "Linux",
+      "architecture": "X64",
+      "runtimeIdentifier": "linux-x64",
+      "powershell": "stable"
+    },
+    {
+      "id": "macos-arm64-ps74",
+      "name": "macOS ARM64 / PowerShell 7.4",
+      "runner": "macos-15",
+      "os": "macOS",
+      "architecture": "Arm64",
+      "runtimeIdentifier": "osx-arm64",
+      "powershell": "7.4"
+    },
+    {
+      "id": "macos-arm64-psstable",
+      "name": "macOS ARM64 / PowerShell stable",
+      "runner": "macos-15",
+      "os": "macOS",
+      "architecture": "Arm64",
+      "runtimeIdentifier": "osx-arm64",
+      "powershell": "stable"
+    }
+  ]
+}

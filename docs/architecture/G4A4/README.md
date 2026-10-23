@@ -2,8 +2,10 @@
 
 ## TL;DR
 
-**Status: planning only (2026-10-23). Nothing here is implemented.** PSModuleUpdate
-(PMU) has no `.github/workflows/`, no Git remote and no CI today. This folder
+**Status: planning complete (2026-10-23); Phase 1 is implemented locally but has not run on GitHub.** PSModuleUpdate
+(PMU) had no `.github/workflows/`, no Git remote and no CI when this was written. Phase 1 now adds `ci.yml` and
+`scripts/build/ci/` (see [PHASE1_IMPLEMENTATION.md](PHASE1_IMPLEMENTATION.md)); Phases 2-4 are not started and no
+Windows, Linux or hosted result exists. This folder
 records the investigation of PMU, NovaModuleTools (Nova), SemanticRelease and
 Gerber and proposes a GitHub Actions architecture that:
 
@@ -44,6 +46,7 @@ is not a declared dependency. See [NOVA_RELEASE_ANALYSIS.md](NOVA_RELEASE_ANALYS
 | 8 | Shared infrastructure ownership | [OWNERSHIP_RECOMMENDATION.md](OWNERSHIP_RECOMMENDATION.md) |
 | 9 | Implementation roadmap | [ROADMAP.md](ROADMAP.md) |
 | 10 | Decision and approval register | [DECISION_REGISTER.md](DECISION_REGISTER.md) |
+| 11 | Phase 1 implementation record | [PHASE1_IMPLEMENTATION.md](PHASE1_IMPLEMENTATION.md) |
 
 Related earlier proposals: [strategy](../CROSS_PLATFORM_TESTING.md),
 [matrix](../TEST_MATRIX.md), [roadmap](../TEST_IMPLEMENTATION_ROADMAP.md),

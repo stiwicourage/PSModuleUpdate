@@ -583,4 +583,6 @@ Planning is complete in [G4A4/](G4A4/README.md): workflow map, Nova release
 analysis, architecture, runner feasibility, test policy, release gating,
 security, ownership, roadmap, and decision register. Next action: owner approval
 of [the decisions](G4A4/DECISION_REGISTER.md), then separate authorization per
-roadmap phase. Nothing is implemented.
+roadmap phase. Phase 1 (`ci.yml`, six lanes, `ci-gate`) is implemented locally and
+validated on macOS ARM64 only; it has not run on GitHub
+([record](G4A4/PHASE1_IMPLEMENTATION.md)). Phases 2-4 are not started.

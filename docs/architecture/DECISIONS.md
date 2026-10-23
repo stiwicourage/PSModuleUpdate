@@ -315,3 +315,5 @@ The [G-4A4 plan](G4A4/README.md) designs a six-lane GitHub Actions matrix
 a `workflow_call`-based release gate, a security model, and project-local
 ownership with Nova as release engine. It is planning only: no workflow was
 implemented. Open items are in the [decision register](G4A4/DECISION_REGISTER.md).
+Phase 1 (workflow `ci.yml`, lane scripts, `ci-gate`) is now implemented locally and not yet run on GitHub; see
+[PHASE1_IMPLEMENTATION.md](G4A4/PHASE1_IMPLEMENTATION.md). The release workflow remains unimplemented.
