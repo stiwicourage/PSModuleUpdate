@@ -1,0 +1,222 @@
+# PSModuleUpdate decisions
+
+## Status legend
+
+- **DECIDED**: approved for G-4A3 implementation.
+- **SUPERSEDED**: historical G-4A1/G-4A2 position replaced by a later approved
+  finding.
+- **QUALIFICATION GAP**: implementation is required, but executable support
+  evidence is incomplete.
+
+## D-001 — Independent module ownership (DECIDED)
+
+PSModuleUpdate is an independent PowerShell module with its own public API,
+source, tests, help, packaging, versioning, and releases. Gerber is a consumer,
+not a runtime dependency or code owner. PMU production code must not depend on
+Gerber paths, commands, types, configuration, secrets, or terminal UI.
+NovaModuleTools may remain development tooling but is not a PMU runtime
+dependency.
+
+## D-002 — Standard provider foundation (DECIDED)
+
+PMU uses `Microsoft.PowerShell.PSResourceGet` rather than implementing feed
+transport, package resolution, or Azure authentication. Version 1.2.0 is the
+qualified behavioral baseline. Compatible later stable 1.x versions require
+explicit matrix evidence; PMU never silently switches provider versions or
+falls back to PowerShellGet.
+
+## D-003 — Two-command public surface (DECIDED)
+
+The initial public API contains only:
+
+- `Get-PSModuleUpdate`
+- `Install-PSModuleUpdate`
+
+Planning and mutation remain separate. There is no registration API, callback
+framework, global consumer inventory, provider SDK, background scheduler, or
+public repair command in the initial contract.
+
+## D-004 — Exact public parameters (DECIDED)
+
+`Get-PSModuleUpdate` has one `ByModule` parameter set:
+
+- mandatory scalar `[PSModuleInfo] $Module`
+- mandatory literal `[string] $Repository`
+- optional validated `[hashtable] $Policy`
+- optional `[PSCredential] $Credential`
+
+`Install-PSModuleUpdate` has one `ByUpdatePlan` parameter set:
+
+- mandatory pipeline-by-value `$Update`, validated as a live schema-1
+  `PSModuleUpdate.UpdatePlan`
+- optional `[PSCredential] $Credential`
+- optional `[switch] $AcceptLicense`
+- optional `[switch] $TrustRepository`
+- native `-WhatIf` and `-Confirm` through `SupportsShouldProcess`
+
+Install does not expose target-changing or force parameters. Persisted and
+deserialized plans are outside the initial contract.
+
+## D-005 — Policy schema and defaults (DECIDED)
+
+The policy contains only `Channel`, `Scope`, `ExpectedRepositoryUri`, and
+`VersionRange`. Defaults are `Stable`, `CurrentUser`, null, and null
+respectively. Unknown keys and invalid types fail. `IncludePrerelease` means
+stable plus prerelease, not prerelease-only. A range uses provider-supported
+NuGet syntax.
+
+## D-006 — Both installation scopes (DECIDED; supersedes G-4A1)
+
+CurrentUser and AllUsers are both required. PMU resolves the selected scope's
+actual provider destination, never changes scope, never falls back to
+CurrentUser, and never self-elevates. The selected installation must already
+exist with matching module identity; PMU does not create a new copy in another
+scope as a self-update side effect.
+
+Mixed-scope installations are represented explicitly. Active module resolution
+and selected-scope installation are separate facts. PMU never modifies the
+other scope merely because its version differs.
+
+The earlier G-4A1 CurrentUser-only and mixed-scope rejection is
+**SUPERSEDED**.
+
+## D-007 — Full version identity and selection (DECIDED)
+
+Complete identity consists of numeric manifest version plus prerelease label.
+The manifest is authoritative; a numeric directory name is insufficient.
+
+Stable policy excludes prereleases. IncludePrerelease considers both. PMU
+selects the greatest eligible release from the exact repository and range, and
+never downgrades the active or selected installed state. An approved plan binds
+one exact target; later publication does not change it.
+
+Four-component PowerShell versions are preserved and compared without blindly
+casting them to `SemanticVersion`. Unsupported forms fail explicitly.
+
+## D-008 — Same-base progression through Strategy C (DECIDED; supersedes G-4A2)
+
+Normal release progression must support:
+
+```text
+2.0.0-preview.1 -> 2.0.0-preview.2 -> 2.0.0-preview.3 -> 2.0.0
+```
+
+Same-numeric-base collisions are not rejected as a class. PMU stages with
+`Save-PSResource`, validates identity, creates a recoverable backup and journal,
+uses exact `Install-PSResource -Reinstall` only for the collision, verifies the
+manifest and tree, and rolls back on recoverable failure.
+
+The earlier G-4A1/G-4A2 fail-closed collision policy and blanket ban on
+`-Reinstall` are **SUPERSEDED**. Raw `-Reinstall` is not exposed publicly or
+used indiscriminately.
+
+## D-009 — GUID continuity (DECIDED)
+
+Name equality is not sufficient identity. When an installation already exists,
+the target manifest GUID must match the planned and installed GUID. An
+unexpected GUID fails before destructive mutation with a stable identity error.
+PSResourceGet's willingness to replace a different GUID is not accepted as PMU
+policy.
+
+## D-010 — Persistent recovery and best-effort rollback (DECIDED; supersedes G-4A1)
+
+PMU creates a persistent, non-secret recovery journal before destructive
+replacement and keeps a verified backup outside the Modules tree. It restores
+and verifies the prior tree after installation or verification failure where
+possible. On the next run, recovery for the same lock identity is completed
+before a new update proceeds.
+
+The earlier "no automatic rollback" and short-lived-lock-only model is
+**SUPERSEDED**.
+
+PMU does not claim atomicity, guaranteed power-loss survival, or recovery when
+the installation and backup are both damaged.
+
+## D-011 — OS-level cooperative locking (DECIDED)
+
+Mutation uses a bounded OS-level exclusive file handle keyed by module name,
+scope, and canonical installation root. Lock-file existence does not establish
+ownership. The lock covers revalidation through recovery and completion.
+Cooperation does not protect against direct provider use, other package
+managers, or manual filesystem changes.
+
+The historical `PMU.UpdateInProgress` concept is replaced in the current
+contract by `PMU.LockTimeout` plus post-acquisition revalidation.
+
+## D-012 — Full installed-tree verification (DECIDED)
+
+Provider return status, directory existence, manifest existence, version text,
+or file count alone cannot establish success. PMU verifies complete manifest
+identity, selected scope, discoverability, and deterministic tree integrity.
+The initial intentional tree difference is provider-generated
+`PSGetModuleInfo.xml`; further exclusions require evidence and tests.
+
+## D-013 — Active, installed, and target state (DECIDED)
+
+Results separately report `ActiveVersion`, `InstalledVersion`,
+`TargetVersion`, and `RestartRequired`. Active state is captured before
+mutation; installed state is read from the verified disk manifest.
+
+Restart is required whenever loaded files were replaced, including a
+same-full-version repair. PMU never removes and reimports a running consumer.
+Gerber Core hot reload is specifically forbidden by Gerber integration policy,
+while PMU remains consumer-neutral.
+
+## D-014 — Credential abstraction (DECIDED)
+
+PMU accepts an optional per-call `PSCredential` or relies on authentication
+already configured for the registered PSResourceGet repository. Direct
+credentials must be supplied independently to plan and install calls. PMU never
+persists, fingerprints, logs, or reconstructs credentials.
+
+PMU does not read `ADO_PAT` or a consumer's secret store. Consumers may obtain a
+credential through their own abstraction and pass it in memory. PMU does not
+install credential providers, configure vaults, or register repositories.
+
+## D-015 — Consent separation (DECIDED)
+
+`Install-PSModuleUpdate` uses native `ShouldProcess` with high confirm impact and
+no custom prompt. Install consent does not imply repository trust, license
+acceptance, credential availability, provider setup, or elevation.
+
+`-WhatIf` is read-only and performs no lock, staging, repair, journal, or
+install mutation. Recovery after approval is restricted to a validated
+unfinished PMU operation for the same module/scope/root; if recovery changes
+plan preconditions, PMU requires a fresh plan.
+
+## D-016 — Stable structured errors (DECIDED)
+
+PMU uses terminating `ErrorRecord` objects and the identifiers listed in
+`ARCHITECTURE.md`. The revised contract adds explicit permission, lock,
+installed-state, recovery, rollback, package-not-found, GUID, and unsupported
+provider behavior errors while preserving the G-4A1 input, provider,
+repository, discovery, installation, and verification families.
+
+Errors retain actionable non-secret context and redact credential-bearing
+provider details.
+
+## D-017 — No automatic dependency bootstrap or elevation (DECIDED)
+
+Missing or incompatible PMU/provider/authentication setup produces actionable
+guidance. PMU does not install or update itself, install its provider,
+automatically trust a repository, request elevation, or silently retry a
+destructive operation.
+
+## D-018 — Qualification claims remain evidence-bound (DECIDED)
+
+Implementation targets PowerShell 7.4+ on Windows, macOS, and Linux, but current
+historical execution does not qualify every target. Successful AllUsers
+mutation, Windows, Linux, PowerShell 7.4, end-to-end hard-kill recovery, real
+two-process replacement, and private-feed installation remain
+**QUALIFICATION GAPS** until executed. Documentation and release claims must
+distinguish implemented behavior from qualified behavior.
+
+## D-019 — Nova scaffold ownership (DECIDED)
+
+`project.json` is the source of build, manifest, package, and test metadata.
+Nova generates module artifacts under `dist/`; PMU source must not hand-author a
+root module or manifest. Public commands remain thin, private helpers are
+domain-owned and function-per-file, and tests mirror source ownership.
+
+The currently absent `run.ps1` is planned repository tooling, not permission to
+bypass Nova or invent another build system.
