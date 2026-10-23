@@ -1,3 +1,3 @@
 @{
-    Severity = @('Error', 'Warning')
+    Severity = @('Error', 'Warning', 'ParseError')
 }

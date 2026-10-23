@@ -4,6 +4,7 @@ Thank you for contributing. Keep changes small, reviewable, and easy to validate
 
 Before opening a pull request:
 
+- run `pwsh -NoLogo -NoProfile -File ./run.ps1`; see [testing and qualification](TESTING.md) for entrypoints and isolation requirements
 - update tests when behavior changes
 - keep tests mirrored to changed source files: one focused `.Tests.ps1` file for every new or changed `src/**/*.ps1` file
 - use `tests/TestHelpers/` or test-support files for shared setup instead of broad catch-all test files

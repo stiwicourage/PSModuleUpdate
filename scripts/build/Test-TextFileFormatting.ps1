@@ -125,5 +125,5 @@ if ($MyInvocation.InvocationName -ne '.') {
         throw $message
     }
 
-    Write-Host 'All tracked text files end immediately after exactly one newline terminator with no extra blank lines at the bottom.'
+    Write-Information 'All tracked text files end immediately after exactly one newline terminator with no extra blank lines at the bottom.' -InformationAction Continue
 }

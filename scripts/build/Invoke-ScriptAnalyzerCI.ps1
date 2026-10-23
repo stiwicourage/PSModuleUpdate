@@ -23,7 +23,7 @@ function Invoke-RepositoryAnalysis {
         Invoke-ScriptAnalyzer -Path $path -Recurse -Settings $settingsPath -ErrorAction Stop
     })
     if ($findings.Count -gt 0) {
-        $findings | Format-Table RuleName, ScriptName, Line, Message -Wrap | Out-Host
+        $findings | Format-List RuleName, ScriptName, Line, Message | Out-Host
         throw "ScriptAnalyzer reported $($findings.Count) finding(s). Fix them before continuing."
     }
 }

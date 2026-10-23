@@ -10,12 +10,17 @@
 
 ## D-001 — Independent module ownership (DECIDED)
 
-PSModuleUpdate is an independent PowerShell module with its own public API,
+PSModuleUpdate is an independent, shared PowerShell module with its own public API,
 source, tests, help, packaging, versioning, and releases. Gerber is a consumer,
 not a runtime dependency or code owner. PMU production code must not depend on
 Gerber paths, commands, types, configuration, secrets, or terminal UI.
 NovaModuleTools may remain development tooling but is not a PMU runtime
 dependency.
+
+Consumers use one normally installed PMU module rather than embedding copies.
+An installed target need not be the caller, be loaded, declare PMU in
+`RequiredModules`, or contain PMU-specific code. Consumer-specific discovery,
+configuration, scheduling, and UI remain consumer responsibilities.
 
 ## D-002 — Standard provider foundation (DECIDED)
 
@@ -38,10 +43,13 @@ public repair command in the initial contract.
 
 ## D-004 — Exact public parameters (DECIDED)
 
-`Get-PSModuleUpdate` has one `ByModule` parameter set:
+`Get-PSModuleUpdate` accepts an installed target and mutually exclusive
+registered-name or explicit-URI repository parameter sets:
 
 - mandatory scalar `[PSModuleInfo] $Module`
-- mandatory literal `[string] $Repository`
+- mandatory literal `[string] $Repository` in the registered-name set
+- mandatory `[Uri] $RepositoryUri` in the explicit-URI set, subject to the
+  provider transport safety decision D-021
 - optional validated `[hashtable] $Policy`
 - optional `[PSCredential] $Credential`
 
@@ -171,7 +179,8 @@ persists, fingerprints, logs, or reconstructs credentials.
 
 PMU does not read `ADO_PAT` or a consumer's secret store. Consumers may obtain a
 credential through their own abstraction and pass it in memory. PMU does not
-install credential providers, configure vaults, or register repositories.
+install credential providers or configure vaults. Caller-approved ephemeral
+repository registration for URI transport is governed by D-021.
 
 ## D-015 — Consent separation (DECIDED)
 
@@ -204,11 +213,21 @@ destructive operation.
 
 ## D-018 — Qualification claims remain evidence-bound (DECIDED)
 
-Implementation targets PowerShell 7.4+ on Windows, macOS, and Linux, but current
-historical execution does not qualify every target. Successful AllUsers
-mutation, Windows, Linux, PowerShell 7.4, end-to-end hard-kill recovery, real
-two-process replacement, and private-feed installation remain
-**QUALIFICATION GAPS** until executed. Documentation and release claims must
+Implementation targets PowerShell 7.4+ on Windows, macOS, and Linux, but each
+claim is limited to its recorded artifact, runtime, provider, and scenario.
+Disposable CurrentUser live batches on macOS with PowerShell 7.6.6 and
+PSResourceGet 1.2.0 have verified public PSGallery and authenticated private
+Azure stable updates, and NuGet.org acquisition with nonmodule rejection.
+Their reports identify the actual module SHA256; results never qualify a
+different artifact by implication. Final-artifact qualification also verified
+actual unregistered private HTTPS-V3 discovery and installation, with separate
+credentials, unchanged WhatIf, and complete registration/receipt cleanup.
+
+Successful real AllUsers mutation, Windows, Linux, PowerShell 7.4, and live
+Nexus remain **QUALIFICATION GAPS**. Private Azure prerelease progression is
+**NOT TESTED** unless an authorized live progression is recorded. Local
+provider progression and process/recovery fixtures are separate evidence, not
+substitutes for a live private-feed test. Documentation and release claims must
 distinguish implemented behavior from qualified behavior.
 
 ## D-019 — Nova scaffold ownership (DECIDED)
@@ -218,5 +237,38 @@ Nova generates module artifacts under `dist/`; PMU source must not hand-author a
 root module or manifest. Public commands remain thin, private helpers are
 domain-owned and function-per-file, and tests mirror source ownership.
 
-The currently absent `run.ps1` is planned repository tooling, not permission to
-bypass Nova or invent another build system.
+The local `run.ps1` uses the repository analyzer wrapper and Nova commands in
+the documented order, not an alternative build system.
+
+## D-020 — Protocol-based repository integration (DECIDED)
+
+PSGallery, NuGet.org, compatible private Azure Artifacts feeds, and compatible
+Nexus NuGet v3 endpoints use one generic PSResourceGet adapter. No vendor-specific
+package-management, authentication framework, fallback source, or embedded
+consumer updater is introduced. Repository identity and credentials are
+caller-owned and independently supplied for discovery and installation.
+
+NuGet.org transport compatibility does not make general NuGet packages
+PowerShell modules. Packages lacking the required manifest, identity, and
+structure are rejected without weakening installation validation.
+
+## D-021 — Explicit repository URI contract (DECIDED; implemented)
+
+The architecture clarification adds mutually exclusive `Repository` and
+`RepositoryUri` inputs. Credentials remain optional, with no authentication
+Boolean. The exact source is retained in the plan and revalidated before
+acquisition and installation.
+
+PSResourceGet 1.2.0 requires registered names for Find, Save, and Install.
+PMU reuses a unique consumer registration or creates an operation-owned
+temporary registration under a separate native per-user registry lock.
+Flushed ownership receipts bind operation/process identity, endpoint hash, and
+the provider-returned API configuration. No `Force`, existing-registration
+mutation, persistent trust change, or credential-bearing repository
+configuration is permitted.
+
+This is an additive clarification of D-004 and a narrow exception to the
+original no-registration-write planning policy. Normal and fully bound stale
+cleanup validate exact ownership; the registration-to-API-binding crash window
+fails closed and can require manual intervention. That boundary and
+non-cooperating writer limitations are explicit, not atomic-cleanup claims.

@@ -2,6 +2,139 @@
 
 Generic self-update functionality for PowerShell modules.
 
+PSModuleUpdate is a standalone shared module installed through normal
+PowerShell module management. Consumers may reference it through
+`RequiredModules`; they do not embed copies of its update implementation.
+PMU can update another installed module even when that target does not depend
+on PMU or contain any PMU-specific code.
+
+## Plan and install an update
+
+PSModuleUpdate separates read-only discovery from an explicitly approved
+installation. It targets PowerShell 7.4+ and uses
+`Microsoft.PowerShell.PSResourceGet` 1.2.0 as its qualified provider baseline.
+It never persistently configures consumer repositories, stores credentials,
+elevates privileges, or reloads the updated module.
+
+Pass an installed module object, not just its name. The target need not be the
+caller or already loaded:
+
+```powershell
+$module = Get-Module -ListAvailable -Name ExampleModule |
+    Sort-Object Version -Descending |
+    Select-Object -First 1
+$update = Get-PSModuleUpdate -Module $module -Repository PSGallery
+$update | Select-Object ModuleName, ActiveVersion, InstalledVersion, TargetVersion, Disposition
+$update | Install-PSModuleUpdate -WhatIf
+```
+
+After reviewing the plan, install it:
+
+```powershell
+$update | Install-PSModuleUpdate
+```
+
+Installation uses native PowerShell confirmation. For automation,
+`-Confirm:$false` suppresses that confirmation only; it does not accept a
+license, trust a repository, provide credentials, or grant filesystem access.
+Pass `-AcceptLicense` or `-TrustRepository` only when you explicitly approve
+those separate requirements. Repository trust is operation-scoped.
+
+### Scope and prereleases
+
+The policy defaults to stable releases in `CurrentUser`. Choose another scope
+or include prereleases explicitly:
+
+```powershell
+$policy = @{
+    Scope = 'AllUsers'
+    Channel = 'IncludePrerelease'
+}
+$update = Get-PSModuleUpdate -Module $module -Repository CompanyModules -Policy $policy
+```
+
+PMU updates an existing matching installation in the selected scope. It does
+not silently create a copy in another scope or fall back to CurrentUser when
+AllUsers is not writable. Run in an appropriately authorized shell when system
+permissions are necessary; PMU never requests elevation.
+
+`IncludePrerelease` considers stable and prerelease releases together. Complete
+versions use semantic prerelease ordering: `preview.10` follows `preview.2`,
+and a stable release follows prereleases with the same numeric base.
+Optional policy fields are `ExpectedRepositoryUri` and `VersionRange`.
+
+### Private repositories
+
+Use an already registered PSResourceGet repository. PMU supports its configured
+authentication or an in-memory `PSCredential` supplied separately to both calls:
+
+```powershell
+$update = Get-PSModuleUpdate -Module $module -Repository CompanyModules -Credential $credential
+$update | Install-PSModuleUpdate -Credential $credential
+```
+
+To select by endpoint instead of registration name, use the mutually exclusive
+`-RepositoryUri` parameter:
+
+```powershell
+$update = Get-PSModuleUpdate -Module $module -RepositoryUri $repositoryUri -Credential $credential
+$update | Install-PSModuleUpdate -Credential $credential
+```
+
+Credentials are optional for both forms. There is no separate authentication
+flag. The selected source remains bound to the plan; installation never searches
+another repository for a matching module name.
+
+An unregistered URI requires a short-lived PSResourceGet registration because
+the provider accepts names, not direct URIs. PMU uses owned random names,
+separate per-user coordination, and nonsecret cleanup receipts without
+changing existing registrations or trust. Install `-WhatIf` creates no
+registration. Interrupted API binding can require manual review; see
+[recovery and transport safety](RECOVERY.md).
+
+Obtain `$credential` through your approved secret-management workflow. PMU
+does not read a particular environment variable or install credential providers.
+Plans are live in-process objects, not portable authorization records; obtain
+a new plan after restarting the shell or changing installation/repository state.
+
+Repository selection is always caller-owned and source-bound. PMU never
+searches another feed just because it contains the same package name. PSGallery,
+public NuGet v3 repositories such as NuGet.org, and authenticated private
+NuGet v3 repositories use the same PSResourceGet integration. General .NET
+NuGet packages are not installable PowerShell modules merely because they can
+be discovered or downloaded. Nexus is expected to work with compatible NuGet v3
+capabilities, but no live Nexus qualification is implied.
+
+## Replacement, recovery, and restart
+
+Same-base transitions such as `2.0.0-preview.1` to `2.0.0-preview.2` and then
+`2.0.0` require staged replacement because those versions share a numeric
+installation directory. PMU validates the staged identity and GUID, preserves a
+verified backup outside the Modules tree, records recovery state, and verifies
+the installed file tree. Provider success alone is not proof of installation.
+
+A cooperating PMU process holds an exclusive filesystem lock throughout the
+operation. Interrupted replacements are checked on the next approved
+installation attempt. Recoverable failures trigger best-effort rollback;
+unsafe or unsuccessful recovery stops further installation and preserves
+available evidence. This is not an atomic installation or a power-loss
+guarantee, and it cannot coordinate unrelated package managers.
+
+Results distinguish the loaded `ActiveVersion`, verified on-disk
+`InstalledVersion`, exact `TargetVersion`, and `RestartRequired`. A loaded
+module is never automatically removed or re-imported. Restart when the result
+requires it, including when loaded files were replaced without changing the
+displayed numeric version.
+
+See [recovery guidance](RECOVERY.md), [architecture](ARCHITECTURE.md),
+[decisions](DECISIONS.md), and the
+[implementation and qualification plan](PLAN.md) for safety contracts,
+limitations, and outstanding qualification. Windows, Linux, PowerShell 7.4,
+and successful real AllUsers mutation require their own executed qualification;
+the runtime target is not a claim that those environments have been tested.
+See [testing and live repository qualification](TESTING.md) for isolated
+PSGallery, NuGet.org, and private-feed checks.
+
 ## Agentic Copilot workflow
 
 Follow this workflow when working with Copilot in this repository.

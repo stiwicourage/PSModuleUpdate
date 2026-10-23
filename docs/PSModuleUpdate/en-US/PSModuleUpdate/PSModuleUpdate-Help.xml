@@ -1,0 +1,494 @@
+<?xml version="1.0" encoding="utf-8"?>
+<helpItems xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" schema="maml" xmlns="http://msh">
+  <command:command>
+    <command:details>
+      <command:name>Get-PSModuleUpdate</command:name>
+      <maml:description>
+        <maml:para>Creates a read-only exact-version update plan for an installed PowerShell module.</maml:para>
+      </maml:description>
+      <command:verb>Get</command:verb>
+      <command:noun>PSModuleUpdate</command:noun>
+    </command:details>
+    <maml:description>
+      <maml:para>Inspects a compatible installed module in CurrentUser or AllUsers and one registered repository.
+The target need not be loaded, be the caller, or depend on PSModuleUpdate.
+PMU is a standalone shared module; consumers own repository configuration and
+the decision about when to check for updates.
+Policy defaults to Stable and CurrentUser.
+Credentials are used only in memory.
+
+`Policy` accepts only `Channel` (`Stable` or `IncludePrerelease`), `Scope`
+(`CurrentUser` or `AllUsers`), `ExpectedRepositoryUri` (`System.Uri` or null),
+and `VersionRange` (provider-supported NuGet range string or null). The latter
+two default to null. IncludePrerelease includes stable releases as well.
+The explicitly selected scope must already contain the matching name and GUID;
+PMU never creates a shadow installation or changes scope.
+
+The manifest supplies installed prerelease identity. The legacy `Active*`
+fields snapshot the supplied module reference and do not imply it is loaded.
+`RestartRequired` inspects actual loaded copies; PMU never imports the target
+to plan or apply an update. A plan binds one exact
+target from one repository and never authorizes a downgrade. Planning does not
+write locks, staging files, journals, or repository settings.
+
+Choose either `Repository` or `RepositoryUri`, never both. A URI must match
+exactly one existing registration. The resolved name, endpoint, API version,
+and trust state are bound into the plan and revalidated before exact discovery,
+staging, and installation. Removing or repointing that name never causes URI
+alias selection or fallback to another source.
+
+If the provider does not disclose a package's license-acceptance requirement,
+the plan conservatively sets `RequiresLicenseAcceptance` to true. Installation
+then requires explicit `-AcceptLicense`; PMU never interprets absent metadata
+as permission to accept a license or allow a provider prompt.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>Get-PSModuleUpdate</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Module</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">psmoduleinfo</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Management.Automation.PSModuleInfo</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Repository</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Policy</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">hashtable</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Collections.Hashtable</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Credential</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">pscredential</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Management.Automation.PSCredential</maml:name>
+          </dev:type>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem>
+        <maml:name>Get-PSModuleUpdate</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Module</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">psmoduleinfo</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Management.Automation.PSModuleInfo</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>RepositoryUri</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">uri</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Uri</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Policy</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">hashtable</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Collections.Hashtable</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Credential</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">pscredential</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Management.Automation.PSCredential</maml:name>
+          </dev:type>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>Credential</maml:name>
+        <maml:description>
+          <maml:para>Optional per-call provider credential.
+Supply it again when installing.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Management.Automation.PSCredential</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Management.Automation.PSCredential</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>Module</maml:name>
+        <maml:description>
+          <maml:para>One compatible installed module reference; no import or PMU dependency is required.
+Name and GUID must match its on-disk manifest.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Management.Automation.PSModuleInfo</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Management.Automation.PSModuleInfo</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>Policy</maml:name>
+        <maml:description>
+          <maml:para>Channel, Scope, ExpectedRepositoryUri (Uri), and VersionRange.
+Unknown keys are rejected.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Collections.Hashtable</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Collections.Hashtable</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>Repository</maml:name>
+        <maml:description>
+          <maml:para>One literal registered PSResourceGet repository name.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>RepositoryUri</maml:name>
+        <maml:description>
+          <maml:para>The absolute endpoint of exactly one existing PSResourceGet registration.
+Cannot be combined with `Repository`. Unregistered or ambiguous endpoints
+produce `PMU.RepositoryUnavailable`; PMU never registers a fallback source.
+Credentials, query strings, and fragments must not be embedded in the URI.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Uri</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Uri</maml:name>
+        </dev:type>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes />
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>PSModuleUpdate.UpdatePlan</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>A live schema-1, data-only plan with active and selected-scope installation
+identity, repository snapshot, exact target, policy, disposition, and
+prerequisites. It contains no credential and is not a durable authorization token.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para>Requires PowerShell 7.4 or later and the qualified PSResourceGet 1.2.0 baseline.
+Missing provider setup, unavailable packages, authentication failures, unsafe
+paths, and identity mismatches are terminating structured PMU errors, not
+UpToDate results. Credentials must be supplied independently to installation.
+
+PSResourceGet 1.2.0 Find/Save/Install expose repository names, not a direct URI
+parameter. This release therefore supports URI selection only through an
+existing unique registration. Temporary registration is not implemented: the
+supported APIs persist in a shared user store, provide no operation-local
+registry or ownership-conditional removal, and cannot guarantee cleanup after
+process termination. Random names or a PMU-only cooperative lock do not turn
+those operations into a transaction with other registry writers. PMU performs
+no production registry writes and creates no stale temporary registrations.
+On macOS the provider store is under the actual LocalApplicationData
+`PSResourceGet/PSResourceRepository.xml`; changing HOME alone does not isolate it.
+
+One generic PSResourceGet adapter is used for compatible registered feeds.
+PSGallery, NuGet.org, Azure Artifacts, and Nexus do not have vendor-specific
+branches. External-feed behavior requires separate qualification; protocol
+compatibility is not a live-validation claim.
+
+An unfinished replacement can be planned read-only from a verified recovery
+backup when a matching active module survives in another version or scope.
+If no usable module identity survives at all, the mandatory Module parameter
+cannot be supplied; manual recovery is required.</maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>--------- EXAMPLE 1 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Get-PSModuleUpdate -Module (Get-Module ExampleModule) -Repository PSGallery
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Creates a stable CurrentUser update plan without changing installed files.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- EXAMPLE 2 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Get-PSModuleUpdate -Module $installed -RepositoryUri ([uri]'https://api.nuget.org/v3/index.json')
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>`$installed` is a compatible installed `PSModuleInfo`, not necessarily loaded.
+The endpoint must already have exactly one registration. General NuGet
+packages without a valid PowerShell module manifest are rejected.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- EXAMPLE 3 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+$plan = Get-PSModuleUpdate -Module $installed -RepositoryUri $privateRepositoryUri -Credential $credential
+$plan | Install-PSModuleUpdate -Credential $credential -AcceptLicense -TrustRepository
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>The caller supplies the private endpoint and credential independently to each
+command. PMU does not read an environment token, store credentials, or configure
+the repository.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+    </command:examples>
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>Online Version</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+    </command:relatedLinks>
+  </command:command>
+  <command:command>
+    <command:details>
+      <command:name>Install-PSModuleUpdate</command:name>
+      <maml:description>
+        <maml:para>Applies one live exact-version module update plan.</maml:para>
+      </maml:description>
+      <command:verb>Install</command:verb>
+      <command:noun>PSModuleUpdate</command:noun>
+    </command:details>
+    <maml:description>
+      <maml:para>Revalidates and stages the exact package without importing it.
+Same-base replacement uses
+a verified backup, durable journal, exclusive OS handle lock, and best-effort rollback.
+Only provider-generated root PSGetModuleInfo.xml is excluded from SHA256 tree comparison.
+No module is hot reloaded.
+Interrupted operations require safe recovery and a fresh plan.
+The target is the compatible installed module bound by the plan, not
+necessarily the caller or a loaded module. No dependency on PMU is required.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>Install-PSModuleUpdate</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Update</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Object</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Credential</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">pscredential</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Management.Automation.PSCredential</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>AcceptLicense</maml:name>
+          <maml:description />
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>TrustRepository</maml:name>
+          <maml:description />
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>WhatIf</maml:name>
+          <maml:description />
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Confirm</maml:name>
+          <maml:description />
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+          </dev:type>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>AcceptLicense</maml:name>
+        <maml:description>
+          <maml:para>Explicitly accepts provider package license requirements for this operation.
+Also required when the provider does not disclose whether acceptance is</maml:para>
+        </maml:description>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="cf">
+        <maml:name>Confirm</maml:name>
+        <maml:description>
+          <maml:para>Prompts you for confirmation before running the cmdlet.</maml:para>
+        </maml:description>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>Credential</maml:name>
+        <maml:description>
+          <maml:para>Per-call provider credential; never persisted.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Management.Automation.PSCredential</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Management.Automation.PSCredential</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>TrustRepository</maml:name>
+        <maml:description>
+          <maml:para>Allows this operation against an untrusted repository without changing its registration.</maml:para>
+        </maml:description>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="true (ByValue)" position="Named" aliases="none">
+        <maml:name>Update</maml:name>
+        <maml:description>
+          <maml:para>An unmodified live PSModuleUpdate.UpdatePlan from this module instance; pipeline by value.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Object</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Object</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="wi">
+        <maml:name>WhatIf</maml:name>
+        <maml:description>
+          <maml:para>Runs the command in a mode that only reports what would happen without performing the actions.</maml:para>
+        </maml:description>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+        </dev:type>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.Object</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>An unmodified live `PSModuleUpdate.UpdatePlan` from this module instance.
+Pipeline binding is by value only; serialized and manufactured plans are rejected.</maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>PSModuleUpdate.UpdateResult</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>A schema-1 result reporting Outcome, ActiveVersion, InstalledVersion,
+TargetVersion, verification, dependency observations, recovery, and restart
+requirements independently. Outcomes are Installed, AlreadyInstalled, Cancelled,
+and WhatIf. Provider success alone never produces Installed.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para>Planning and WhatIf never perform recovery writes. After native approval, an
+exclusive OS handle lock covers revalidation, staging, backup, replacement,
+verification, rollback, and journal completion. Lock acquisition is bounded.
+The exact target and selected CurrentUser or AllUsers scope never change.
+AllUsers permission failures do not cause elevation or CurrentUser fallback.
+The exact registered source name, endpoint, API version, and trust state are
+revalidated before staging and again before installation. URI-selected plans
+do not re-resolve aliases if their bound registration disappears or changes.
+Production PMU never registers, repoints, or unregisters a repository.
+
+Same-numeric-version prerelease progression uses exact Save-PSResource staging
+and internal Install-PSResource -Reinstall only for a validated collision.
+Backups are outside Modules. Journals use flushed temporary files and atomic
+file replacement; PMU does not claim atomic installation or guaranteed
+power-loss recovery. Interrupted state and journal paths are untrusted and
+validated before repair. Recovery that restores prior files requires a fresh
+plan. A complete target is recognized only after complete-tree verification.
+
+TrustRepository is operation-scoped and never changes repository trust.
+AcceptLicense is independent of confirmation and trust. Missing or malformed
+provider license metadata conservatively requires explicit acceptance.
+Prerequisites are checked before quiet provider staging and installation, and
+checked again under the mutation lock. Direct credentials are never persisted
+or retained for later calls.
+
+PMU does not import staged code or reload a consumer. RestartRequired includes
+replacement of loaded files even when version text is unchanged. When a newer
+target is installed while an older module remains loaded, restart is needed to
+use the target.
+
+Stable error identifiers include PMU.InvalidPlan, PMU.PlanStale,
+PMU.RepositoryChanged, PMU.InstalledStateChanged, PMU.PermissionDenied,
+PMU.LockTimeout, PMU.VerificationFailed, PMU.RecoveryRequired,
+PMU.RecoveryFailed, and PMU.RollbackFailed. Preserve recovery evidence if repair
+cannot be verified. Recovery is impossible through this API when no matching
+module identity survives to satisfy Get-PSModuleUpdate's Module parameter.
+
+Windows, Linux, PowerShell 7.4, real AllUsers writes, authenticated-feed
+installation, and later provider versions require separate qualification.</maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>--------- EXAMPLE 1 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+$plan | Install-PSModuleUpdate -WhatIf
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Revalidates read-only without locking, staging, installing, or repairing recovery state.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- EXAMPLE 2 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+$plan | Install-PSModuleUpdate -AcceptLicense -TrustRepository
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Requests native confirmation before applying the exact approved target and scope.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+    </command:examples>
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>Online Version</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+    </command:relatedLinks>
+  </command:command>
+</helpItems>

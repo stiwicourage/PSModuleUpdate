@@ -6,10 +6,10 @@ then apply the approved G-4A2-FIX2 revisions: CurrentUser and AllUsers, semantic
 same-base prerelease progression, Strategy C staging and replacement, persistent
 recovery, OS-level locks, tree verification, and best-effort rollback.
 
-This is an execution plan, not a completion report. At this phase only
-`ARCHITECTURE.md`, `DECISIONS.md`, and this plan exist. No PMU production code,
-tests, command help, build output, provider installation, real module update,
-or cross-platform qualification has been completed.
+This is an execution plan, not a completion report. Architecture alignment is
+recorded; implementation and qualification are ongoing. The repository and
+authentication clarification extends that ongoing work rather than restarting
+it. No incomplete phase below is implied complete by its presence in this plan.
 
 ## Delivery constraints
 
@@ -24,9 +24,8 @@ or cross-platform qualification has been completed.
 - Keep PowerShell compatible with `project.json`
   `Manifest.PowerShellHostVersion` 7.4.
 - Use PSResourceGet 1.2.0 as the initial provider contract baseline.
-- The required `run.ps1` quality wrapper is currently absent. The coordinator's
-  narrow Nova wrapper work is planned and is not a Phase 1/2 documentation
-  blocker. Once present, it becomes the final repository gate.
+- The local `run.ps1` and analyzer wrapper now exist and use the required Nova
+  pipeline. They remain final gates for the complete implementation.
 
 ## Target repository shape
 
@@ -67,11 +66,12 @@ being spread across callers.
 
 ### `Get-PSModuleUpdate`
 
-One `ByModule` parameter set:
+Mutually exclusive registered-name and explicit-URI parameter sets:
 
 ```text
 -Module      [PSModuleInfo]  mandatory scalar
--Repository  [string]        mandatory literal
+-Repository  [string]        mandatory literal in registered-name set
+-RepositoryUri [Uri]         mandatory in explicit-URI set
 -Policy      [hashtable]     optional
 -Credential  [PSCredential]  optional
 ```
@@ -87,6 +87,10 @@ VersionRange          [string|null]               = null
 
 Output: one schema-1 `PSModuleUpdate.UpdatePlan` with the complete field set in
 `ARCHITECTURE.md`.
+
+The target is an installed `PSModuleInfo`, not necessarily the caller or a loaded
+module. It need not contain PMU code or declare a PMU dependency. Keep target
+identity separate from any matching active module observation.
 
 ### `Install-PSModuleUpdate`
 
@@ -109,7 +113,7 @@ Use `SupportsShouldProcess` with `ConfirmImpact = 'High'`. Output: one schema-1
 
 **Observable scenarios first**
 
-1. Reject null, ambiguous, source-layout, and identity-mismatched active modules.
+1. Reject null, ambiguous, source-layout, and identity-mismatched target modules.
 2. Validate the exact policy keys, types, defaults, and enum values.
 3. Validate the one-repository literal contract.
 4. Return one schema-1 plan object without credentials.
@@ -183,6 +187,12 @@ Use `SupportsShouldProcess` with `ConfirmImpact = 'High'`. Output: one schema-1
 7. Bind the exact target and retain it when a newer release later appears.
 8. Return `UpToDate`, `AlreadyInstalledRestartRequired`, and `ActionRequired`
    for their distinct conditions.
+9. Distinguish registered names from explicit URIs through parameter sets.
+10. Establish a safe provider-supported URI transport mechanism, or document
+    the explicit limitation without silently creating permanent registrations.
+11. Test owned temporary registration, no overwrite/repointing, cleanup
+    failures, termination, unrelated registration preservation, and concurrent
+    cooperating operations separately from target locks.
 
 **Likely files**
 
@@ -418,6 +428,31 @@ Additional provider versions are separate matrix rows. Successful AllUsers
 qualification requires an authorized disposable elevated host; it must not be
 simulated or run against a developer's machine.
 
+### Repository protocol qualification
+
+Use the same PMU integration for all scenarios, with optional per-call
+`PSCredential`, exact source binding, and no fallback:
+
+1. PSGallery: live public exact/prerelease discovery, acquisition, and isolated
+   installation of a valid PowerShell module.
+2. NuGet.org: live NuGet v3 exact/prerelease discovery and acquisition; reject
+   general .NET packages without weakening module validation. A missing suitable
+   module fixture is a qualification limitation, not permission to install
+   arbitrary NuGet packages.
+3. Private Azure Artifacts: authorized caller-supplied credentials, exact and
+   prerelease discovery, acquisition, isolated installation, same-base
+   progression, and verification where suitable packages exist. Do not publish
+   fixtures or change feed permissions.
+4. Nexus: expected compatibility through the same NuGet v3 provider behavior;
+   report live execution as not tested without an authorized endpoint.
+
+PSResourceGet 1.2.0 requires repository registration for Find, Save, and Install.
+Direct URI-as-name execution returned `RepositoryNameIsNotResolved`. Verify the
+real registration store and protect mutations; HOME isolation is not sufficient.
+Keep credentials out of registration configuration, plans, journals, logs, and
+test output. Label implemented, tested, not-tested, and blocked behavior
+separately, and never equate mocked contracts with live repository support.
+
 ## Documentation work after implementation
 
 When public commands exist:
@@ -457,9 +492,8 @@ Before implementation handoff, run in repository order:
 6. the relevant provider/platform integration matrix
 7. CodeScene review/score for all touched supported code, targeting 10.0
 
-Do not bypass a missing or failed wrapper with direct alternatives. The current
-scaffold lacks the analyzer and full quality wrappers; those gates remain
-unverified until the coordinator's planned wrapper work is present.
+Do not bypass a missing or failed wrapper with direct alternatives. Both local
+wrappers are now present; their final complete-scope execution is still required.
 
 Documentation-only Phase 1/2 validation is limited to Markdown structure,
 repository text formatting, diff inspection, and repository-boundary checks.

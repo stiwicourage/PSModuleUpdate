@@ -10,8 +10,8 @@ installed-module inventory.
 
 This document is the implementation architecture for G-4A3. It transfers the
 approved G-4A1 contract and the superseding G-4A2-FIX2 decisions into the PMU
-repository. It does not claim that the production code, tests, help, or
-cross-platform qualification described here already exist.
+repository. Source, tests, and command help now exist; this architecture is
+not a substitute for executed qualification or a passing readiness gate.
 
 The historical evidence remains owned by the read-only sibling Gerber
 repository:
@@ -40,13 +40,19 @@ PMU does not own:
 
 - Gerber `/update`, Gerber terminal rendering, or Gerber configuration
 - NovaModuleTools update behavior or build implementation
-- repository registration, repository trust persistence, credential-provider
+- persistent consumer repository configuration, repository trust persistence, credential-provider
   installation, vault configuration, elevation, or package publication
 - automatic module reload or removal from the current session
-- updates for unrelated modules or plugins
+- consumer-specific module or plugin discovery
 - custom NuGet transport, dependency resolution, or Azure authentication
 
-Consumers pass the active module identity and policy to PMU. PSResourceGet owns
+PMU is one shared, normally installed PowerShell module, not an implementation
+embedded in each consumer. Consumers may declare it in `RequiredModules`, but
+the target module need not depend on PMU, contain PMU-specific code, be the
+caller, or be loaded. A caller may update separate installed modules with
+different repository, credential, scope, and policy inputs.
+
+Consumers pass an installed target module identity and policy to PMU. PSResourceGet owns
 feed access, package discovery, dependency resolution, download, extraction,
 and the underlying install operation. PMU adds policy, safety, verification,
 and recovery around those operations.
@@ -70,17 +76,19 @@ version is declared supported.
 
 ### `Get-PSModuleUpdate`
 
-`Get-PSModuleUpdate` is read-only from PMU's perspective. It performs
+`Get-PSModuleUpdate` is read-only for module installations. It performs
 repository discovery and local inspection but does not install, remove, repair,
-lock a destructive operation, create a journal, change scope, register a
-repository, or persist credentials.
+lock a destructive operation, create an installation journal, change scope, or
+persist credentials. Any explicit-URI registration mechanism is subject to the
+narrow transport exception below.
 
-The command has one parameter set, `ByModule`:
+The command distinguishes registered-name and explicit-URI parameter sets:
 
 | Parameter | Type | Binding and default |
 | --- | --- | --- |
-| `Module` | `System.Management.Automation.PSModuleInfo` | Mandatory scalar. The consumer's active module object. No name-only inference. |
-| `Repository` | `string` | Mandatory non-empty literal registered PSResourceGet repository name. No wildcard, array, or all-repository search. |
+| `Module` | `System.Management.Automation.PSModuleInfo` | Mandatory scalar installed target, which need not be loaded or be the caller. No name-only inference. |
+| `Repository` | `string` | Mandatory in the registered-name set. Non-empty literal name; no wildcard, array, or all-repository search. |
+| `RepositoryUri` | `System.Uri` | Mandatory in the explicit-URI set; mutually exclusive with `Repository`. Supported transport safety must be established before claiming URI support. |
 | `Policy` | `hashtable` | Optional. Omitted fields receive the defaults below. Unknown keys or invalid types are errors. |
 | `Credential` | `System.Management.Automation.PSCredential` | Optional, in-memory, per-call credential passed only to provider operations. |
 
@@ -93,6 +101,9 @@ The `Policy` schema is:
 | `ExpectedRepositoryUri` | `System.Uri` or null | null | Optional deployment-approved endpoint. When supplied, the registered endpoint must match using safe URI comparison. |
 | `VersionRange` | `string` or null | null | Optional provider-supported NuGet range. PMU does not invent a second range syntax. |
 
+The target may be obtained from `Get-Module -ListAvailable` without importing
+its code. Active state describes any matching module actually loaded in the
+session, not the supplied target object; it may be absent.
 The active module may resolve from a different scope than `Policy.Scope`. PMU
 must explicitly resolve the matching module name and GUID in the requested
 scope, record both states, and never modify the other scope. If no matching
@@ -168,6 +179,10 @@ mutation.
 | Decision | `UpdateAvailable`, `Disposition`, `Reason`, `RestartRequired` |
 | Prerequisites | `RequiresRepositoryTrust`, `RequiresLicenseAcceptance`, `DependencySummary` |
 
+For an initially unregistered URI, `RepositoryName` is null: the stable source
+identity is the URI and bound provider API, not a temporary transport name.
+The `Active*` values are null when no matching target is loaded.
+
 `ObservedInstalledVersions` contains non-secret records with full version,
 numeric version, prerelease label, scope, resolved root, manifest path, and
 manifest GUID. It is limited to the named module and the roots necessary to
@@ -242,13 +257,69 @@ PMU must not:
   test output, or diagnostic attachment
 - put credentials in a URL
 - emit provider diagnostics that contain credential material
-- install a credential provider, create a vault, register a repository, or
+- install a credential provider, create a vault, persist a consumer repository, or
   change persistent repository trust
 
 The G-4A2-FIX1 qualification proved authenticated discovery and
 `Save-PSResource` against a project-scoped Azure Artifacts NuGet v3 feed with
 PSResourceGet 1.2.0 and an in-memory credential. That endpoint is evidence, not
 a PMU default and must never be hardcoded.
+
+### Repository and authentication architecture clarification
+
+Repository configuration belongs to the caller. PMU has no persistent consumer,
+repository-configuration, credential, or authentication-mapping database.
+All repositories use one PSResourceGet integration based on protocol
+capabilities and explicit source identity, not vendor dispatch.
+
+PSResourceGet 1.2.0 inspection and execution establish that Find, Save, and
+Install accept registered names, not arbitrary URI parameters. A URI passed as
+a repository name was rejected with `RepositoryNameIsNotResolved`. On the
+development macOS host the store is
+`LocalApplicationData/PSResourceGet/PSResourceRepository.xml`; changing HOME
+does not establish registration isolation.
+
+URI selection reuses one unique existing consumer registration and rejects
+ambiguity. When none exists, PMU creates a collision-resistant owned name and
+never overwrites, repoints, or changes the trust of another registration.
+Provider-inferred API identity comes from native registration `-PassThru`,
+not vendor dispatch or guessed URI patterns, and is durably bound before use.
+Credentials are supplied to operations, never to registration metadata.
+
+Cooperating PMU processes serialize registration changes separately from target
+installation locks. Coordination and flushed nonsecret ownership receipts live
+under native LocalApplicationData `PSModuleUpdate/RepositoryTransport`,
+independently of child HOME. Receipts contain operation/process identity and an
+endpoint hash, not raw repository URLs or authentication mappings.
+
+Normal cleanup verifies exact ownership and configuration. Later operations
+can reap a matching fully bound dead-owner registration. Termination between
+registration and atomic API binding deliberately fails closed and may require
+manual intervention; no automatic recovery of that window is claimed. These
+locks do not coordinate unrelated external registry writers. See
+[recovery guidance](RECOVERY.md).
+
+The plan stays bound to the caller's endpoint/API while fresh temporary names
+are acquired separately for discovery and approved installation. Install
+`-WhatIf` creates no registration. This narrow transport exception does not
+authorize persistent consumer repository configuration or source fallback.
+
+Qualification scenarios are:
+
+- PSGallery: public module discovery, prereleases, exact acquisition, isolated
+  installation, and verification.
+- NuGet.org: public NuGet v3 discovery and acquisition; general .NET packages
+  lacking a valid PowerShell module must be rejected before mutation.
+- Private Azure Artifacts: caller-supplied credentials, discovery, exact
+  acquisition, isolated installation, prerelease progression, and verification.
+  The historical endpoint is evidence, never a built-in configuration.
+- Nexus: expected compatibility through a PSResourceGet-supported NuGet v3
+  endpoint and authentication configuration, with no vendor-specific adapter.
+  No live Nexus qualification is implied.
+
+Live execution, mocked contracts, and unavailable credentials/packages are
+reported separately. Provider limitations never justify a custom NuGet client,
+weaker module validation, or implicit repository fallback.
 
 ## Installation workflow
 
