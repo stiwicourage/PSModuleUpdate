@@ -47,3 +47,5 @@ Recommended flow:
     - Use `/agent reviewer`, `.github/agents/reviewer.agent.md`, and `.github/prompts/review-change.prompt.md` before handoff or pull request review.
 4. **Prepare release**
     - Use `/agent release-manager`, `.github/agents/release-manager.agent.md`, and `.github/prompts/prepare-release.prompt.md` when release-facing files change.
+
+The [G-4A4 plan](G4A4/README.md) proposes the GitHub Actions matrix and release gating; it is not yet implemented.

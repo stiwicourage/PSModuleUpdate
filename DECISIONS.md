@@ -307,3 +307,11 @@ propose reusable infrastructure for PMU, Gerber Core, and future modules.
 They do not qualify any new platform or authorize pipeline/container/VM
 implementation. Ownership, CI provider, architecture coverage, privileged
 environments, and credential infrastructure require owner approval.
+
+## D-024 — G-4A4 cross-platform CI and release-gating design (PROPOSED)
+
+The [G-4A4 plan](G4A4/README.md) designs a six-lane GitHub Actions matrix
+(Windows x64, Linux x64, macOS ARM64, each with PowerShell 7.4 and latest),
+a `workflow_call`-based release gate, a security model, and project-local
+ownership with Nova as release engine. It is planning only: no workflow was
+implemented. Open items are in the [decision register](G4A4/DECISION_REGISTER.md).

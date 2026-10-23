@@ -576,3 +576,11 @@ Next action: approve the testing architecture, ownership, costs, and initial
 matrix in [the qualification roadmap](TEST_IMPLEMENTATION_ROADMAP.md), then
 authorize its phases separately. Do not restart Phase 3A, refactor to chase
 scores, implement Gerber integration, or change Nova Init as part of closure.
+
+## G-4A4 — Cross-platform qualification and GitHub Actions design
+
+Planning is complete in [G4A4/](G4A4/README.md): workflow map, Nova release
+analysis, architecture, runner feasibility, test policy, release gating,
+security, ownership, roadmap, and decision register. Next action: owner approval
+of [the decisions](G4A4/DECISION_REGISTER.md), then separate authorization per
+roadmap phase. Nothing is implemented.
