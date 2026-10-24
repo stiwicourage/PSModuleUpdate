@@ -36,6 +36,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   Workflow policy tests retain matrix-specific restrictions for `ci.yml` while
   allowing separate publish, analysis, dependency-review, and coverage workflows.
   Shared pull-request safety checks remain enforced.
+  Unit coverage is enabled with the existing 90 percent target, and the
+  test/coverage CI script runs unit tests before integration tests to produce
+  `artifacts/coverage.xml` for downstream coverage uploads.
 - Opt-in disposable live qualification for PSGallery, NuGet.org nonmodule
   rejection, and caller-approved authenticated private feeds, with explicit
   registration cleanup and artifact-specific evidence.

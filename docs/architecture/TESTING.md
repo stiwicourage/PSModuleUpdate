@@ -31,16 +31,21 @@ autoloading Pester 6 and causing an assembly collision when Nova selects Pester
 A failed prerequisite stops the pipeline. The analyzer covers authored source,
 tests, helpers, and root PowerShell scripts, not generated `dist/` or
 `artifacts/` files. Its settings retain default rules and fail on Error or
-Warning diagnostics; no rule suppression is added for this module.
+Warning diagnostics, except the approved `PSAvoidUsingWriteHost` exclusion in
+the shared settings for intentional host output.
 
 Use `Invoke-NovaTest -TagFilter BuildTooling` for the quality-entrypoint tests.
 Use `Invoke-NovaTest` for unit validation and `Test-NovaBuild` for the separate
 built-module integration flow. Do not substitute a direct Pester invocation:
 Nova owns discovery, supported Pester selection, StrictMode, and result output.
 
-Nova writes unit results to `artifacts/UnitTestResults.xml`. Coverage is disabled
-in the initial scaffold configuration; test counts do not establish a measured
-coverage percentage.
+Nova writes unit results to `artifacts/UnitTestResults.xml`. Unit coverage is
+enabled in `project.json`, targets the authored source paths, and writes JaCoCo
+to `artifacts/coverage.xml` with the existing 90 percent target. Integration
+tests remain a separate phase and do not generate the unit coverage report.
+The test/coverage workflow runs `Invoke-NovaTest` before `Test-NovaBuild` and
+uploads that report for CodeScene and Codecov; test counts alone do not
+establish a measured coverage percentage.
 
 ### Phase 1 skips and platform evidence
 

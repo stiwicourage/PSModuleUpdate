@@ -71,15 +71,17 @@ $projectInfo = Get-NovaProjectInfo
 $testFailed = $false
 try {
     if (@($ExcludeTag).Count -gt 0) {
+        Invoke-NovaTest -ExcludeTagFilter $ExcludeTag
         Test-NovaBuild -ExcludeTagFilter $ExcludeTag
     }
     else {
+        Invoke-NovaTest
         Test-NovaBuild
     }
 }
 catch {
     $testFailed = $true
-    Write-Warning "Test-NovaBuild failed: $( $_.Exception.Message )"
+    Write-Warning "CI tests failed: $( $_.Exception.Message )"
 }
 finally {
     Copy-CiArtifactsIfPresent -ProjectRoot $projectInfo.ProjectRoot -ArtifactsDirectory $OutputDirectory -ProjectName $projectInfo.ProjectName

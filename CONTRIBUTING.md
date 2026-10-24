@@ -68,6 +68,10 @@ root. Each PowerShell consumer step uses the install step's `moduleRoot` output
 to set an isolated `PSModulePath`; installed modules and imports do not carry
 over automatically between steps. An always-run cleanup step validates ownership
 before removing that root, including when tests or changelog validation fail.
+Its CI script runs `Invoke-NovaTest` before `Test-NovaBuild`: unit tests generate
+`artifacts/coverage.xml` from the enabled `project.json` JaCoCo configuration,
+and the uploaded artifact supplies CodeScene and Codecov. Integration results
+alone are not coverage evidence.
 
 Workflow policy tests distinguish the platform matrix from the other workflows.
 `ci.yml` retains full-SHA action pins, fixed runner labels, read-only permissions,
