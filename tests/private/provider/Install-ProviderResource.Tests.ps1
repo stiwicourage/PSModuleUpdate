@@ -12,4 +12,8 @@ Describe 'Install-ProviderResource' -Tag 'PMU' {
         Should -Invoke Install-PSResource -Times 1 -ParameterFilter { $Reinstall }
         Should -Invoke Install-PSResource -Times 1 -ParameterFilter { -not $Reinstall -and $Scope -eq 'CurrentUser' }
     }
+    It 'reports provider installation failures with a stable error id' {
+        Mock Install-PSResource { throw 'disk failure' }
+        { Install-ProviderResource (Initialize-PMUTestOperation $TestDrive) } | Should -Throw -ErrorId 'PMU.InstallationFailed'
+    }
 }

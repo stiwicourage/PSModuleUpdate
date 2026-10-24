@@ -8,4 +8,8 @@ Describe 'Get-ModuleReferenceIdentity' -Tag 'PMU', 'PMUActualActive' {
             { Get-ModuleReferenceIdentity $reference } | Should -Throw -ErrorId 'PMU.ModuleIdentityMismatch'
         }
     }
+    It 'rejects a module reference whose name is not a literal module identity' {
+        $reference = New-Module -Name 'bad name' -ScriptBlock { }
+        { Get-ModuleReferenceIdentity $reference } | Should -Throw -ErrorId 'PMU.InvalidRequest'
+    }
 }

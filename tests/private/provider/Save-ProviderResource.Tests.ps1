@@ -9,4 +9,8 @@ Describe 'Save-ProviderResource' -Tag 'PMU' {
         Save-ProviderResource $operation
         Should -Invoke Save-PSResource -Times 1 -ParameterFilter { $Version -eq '[2.0.0-preview.2]' -and $IncludeXml -and $Path -eq $operation.StageRoot -and $Quiet }
     }
+    It 'reports provider save failures with a stable error id' {
+        Mock Save-PSResource { throw 'disk failure' }
+        { Save-ProviderResource (Initialize-PMUTestOperation $TestDrive) } | Should -Throw -ErrorId 'PMU.InstallationFailed'
+    }
 }

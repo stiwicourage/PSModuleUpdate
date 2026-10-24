@@ -8,4 +8,10 @@ Describe 'Get-ProviderMutationParameter' -Tag 'PMU' {
         $parameters.Confirm | Should -BeFalse
         $parameters.ContainsKey('Reinstall') | Should -BeFalse
     }
+    It 'forwards a credential only when the operation carries one' {
+        $operation = Initialize-PMUTestOperation $TestDrive
+        (Get-ProviderMutationParameter $operation).ContainsKey('Credential') | Should -BeFalse
+        $operation.Credential = [pscredential]::new('user', [securestring]::new())
+        (Get-ProviderMutationParameter $operation).Credential.UserName | Should -Be 'user'
+    }
 }
