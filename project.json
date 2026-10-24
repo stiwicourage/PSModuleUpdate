@@ -30,7 +30,7 @@
         "src/private/**/*.ps1",
         "src/classes/*.ps1"
       ],
-      "CoveragePercentTarget": 90,
+      "CoveragePercentTarget": 95,
       "OutputPath": "artifacts/coverage.xml",
       "OutputFormat": "JaCoCo"
     },
