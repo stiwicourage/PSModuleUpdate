@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.1.0] - 2026-10-24
+
+### Added
+
 - Standalone `Get-PSModuleUpdate` planning and `Install-PSModuleUpdate`
   installation contracts for explicitly identified modules and repositories,
   with CurrentUser/AllUsers scope policies and stable/prerelease selection.
@@ -43,16 +57,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   rejection, and caller-approved authenticated private feeds, with explicit
   registration cleanup and artifact-specific evidence.
 
-### Changed
-
-### Deprecated
-
-### Removed
-
 ### Fixed
 
 - Pass the owned temporary dependency root between `Run Tests` workflow steps
   so NovaModuleTools is discoverable for CI and changelog validation, with
   ownership-validated cleanup even after a failed consumer step.
 
-### Security
