@@ -10,4 +10,8 @@ Describe 'Get-RepositoryRegistration' -Tag 'PMUUriBridge' {
             Should -Invoke Get-PSResourceRepository -Times 1 -ParameterFilter { -not $Name }
         }
     }
+    It 'reports an unavailable provider repository store' {
+        Mock Get-PSResourceRepository { throw 'store offline' }
+        { Get-RepositoryRegistration 'OwnedFeed' } | Should -Throw -ErrorId 'PMU.RepositoryUnavailable'
+    }
 }

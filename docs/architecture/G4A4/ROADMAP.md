@@ -11,22 +11,30 @@ repositories; private hosting changes the cost (see [RUNNER_FEASIBILITY.md](RUNN
 
 ## Phase 1: Platform matrix
 
-**Status: IMPLEMENTED locally, not yet run on GitHub** ([record](PHASE1_IMPLEMENTATION.md)). Acceptance items
-that need real runners (first Windows/Linux results, hosted provisioning) remain open.
+**Status: IMPLEMENTED; first GitHub run has two passing macOS lanes and four failing Windows/Linux lanes**
+([record](PHASE1_IMPLEMENTATION.md#first-hosted-run-and-platform-fixes-2026-10-23)). Hosted provisioning
+succeeded on all six lanes; complete platform-test acceptance remains open.
 
 Local hardening includes documented runner verification: GitHub explicitly
 maps `macos-15` to ARM64 standard hosted runners for public repositories, so
 the approved label is retained. The implementation record inventories all
 four historical macOS skips and the additional platform-conditional skips.
 Documented runner support does not satisfy the six executed-lane acceptance
-criterion; the first GitHub run is still required.
+criterion; all six lanes must pass after the recorded platform fixes.
 
 Hardening is locally verified with disposable dependencies and explicit executable/runtime witnesses on
 macOS ARM64, PowerShell 7.4.21 and stable 7.6.8: each lane passed 413 unit tests and six integration tests
 with the same four documented skips. The isolated repository quality wrapper, 135 BuildTooling tests,
 analyzer, formatting and actionlint passed. Before/after module and repository-store fingerprints were
 unchanged. The hardened gate requires current-run complete qualification evidence, not merely a successful
-aggregate matrix job. These local results do not close the hosted-runner acceptance items.
+aggregate matrix job. These historical local results do not close the remaining Windows/Linux acceptance
+items. Run 39949417203 confirmed both Mac lanes and rejected the incomplete matrix at `ci-gate`; a new run
+is required to qualify the fixes.
+
+The platform fixes subsequently passed the local macOS 7.4.21 quality wrapper (416 unit and six integration
+passes) and a complete emulated Linux x64 / Ubuntu 22.04 / 7.4.21 lane (414 unit and five integration passes),
+with only the existing platform/opt-in skips. These are not a Windows result or a hosted Ubuntu 24.04 rerun;
+the [implementation record](PHASE1_IMPLEMENTATION.md#post-fix-local-validation) retains the exact scope.
 
 | Item | Content |
 | --- | --- |

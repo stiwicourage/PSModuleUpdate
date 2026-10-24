@@ -1,7 +1,7 @@
 {
   "ProjectName": "PSModuleUpdate",
   "Description": "Generic self-update functionality for PowerShell modules.",
-  "Version": "0.1.0-preview",
+  "Version": "0.1.0-preview01",
   "Preamble": [
     "Set-StrictMode -Version Latest",
     "$ErrorActionPreference = 'Stop'"
@@ -24,13 +24,13 @@
   },
   "Pester": {
     "CodeCoverage": {
-      "Enabled": false,
+      "Enabled": true,
       "Path": [
         "src/public/*.ps1",
         "src/private/**/*.ps1",
         "src/classes/*.ps1"
       ],
-      "CoveragePercentTarget": 90,
+      "CoveragePercentTarget": 95,
       "OutputPath": "artifacts/coverage.xml",
       "OutputFormat": "JaCoCo"
     },

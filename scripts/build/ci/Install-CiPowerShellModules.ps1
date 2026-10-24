@@ -1,13 +1,13 @@
 [CmdletBinding()]
 param(
-    [string[]]$Name = @('Pester', 'NovaModuleTools', 'PSScriptAnalyzer', 'Microsoft.PowerShell.PSResourceGet', 'Microsoft.PowerShell.PlatyPS'),
+    [string[]]$Name = @('Pester', 'NovaModuleTools', 'KeepAChangelog', 'PSScriptAnalyzer', 'Microsoft.PowerShell.PSResourceGet', 'Microsoft.PowerShell.PlatyPS'),
     [string]$ModuleRoot = (Join-Path ([IO.Path]::GetTempPath()) "pmu-ci-modules-$([guid]::NewGuid().ToString('N'))")
 )
 
 . (Join-Path $PSScriptRoot 'CiDependencyRoot.ps1')
 
 $script:PinnedVersion = @{
-    Pester = '5.7.1'
+    Pester                               = '5.7.1'
     'Microsoft.PowerShell.PSResourceGet' = '1.2.0'
 }
 
@@ -19,10 +19,10 @@ function Get-CiModuleInstallParameter {
     )
 
     $parameter = @{
-        Name = $Name
-        Repository = 'PSGallery'
-        Path = $ModuleRoot
-        Force = $true
+        Name        = $Name
+        Repository  = 'PSGallery'
+        Path        = $ModuleRoot
+        Force       = $true
         ErrorAction = 'Stop'
     }
     if ($script:PinnedVersion.ContainsKey($Name)) {
@@ -44,7 +44,8 @@ function Save-CiPowerShellModule {
         & (Get-Process -Id $PID).Path -NoLogo -NoProfile -File (Join-Path $PSScriptRoot 'CiDependencyProbe.ps1') -ModuleRoot $owner.Path
         if ($LASTEXITCODE -ne 0) { throw 'Isolated dependency closure validation failed.' }
         return $owner
-    } catch {
+    }
+    catch {
         Remove-CiDependencyRoot -Owner $owner
         throw
     }

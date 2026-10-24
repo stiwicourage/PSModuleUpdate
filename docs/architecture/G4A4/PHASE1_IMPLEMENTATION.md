@@ -1,9 +1,9 @@
-# G-4A4 Phase 1 - GitHub Actions platform matrix (implemented locally)
+# G-4A4 Phase 1 - GitHub Actions platform matrix
 
 ## TL;DR
 
-**Status: hardened and validated locally on macOS ARM64 / PowerShell 7.4.21 and stable 7.6.8. Nothing has run on GitHub.**
-No Windows, Linux or hosted-macOS result exists yet and none is claimed. Phase 1 adds
+**Status: first GitHub run executed; both macOS lanes passed, both Windows and both Linux lanes failed.**
+The first run is recorded below; the complete matrix is not yet qualified. Phase 1 adds
 `.github/workflows/ci.yml` (reusable, six lanes, `ci-gate`) and helper scripts under
 `scripts/build/ci/`. It reuses the existing Nova flow (`Invoke-NovaBuild`, `Invoke-NovaTest`,
 `Test-NovaBuild`) and does not change Nova, release, publishing or credentials.
@@ -11,8 +11,9 @@ No Windows, Linux or hosted-macOS result exists yet and none is claimed. Phase 1
 | Label | Meaning here |
 | --- | --- |
 | IMPLEMENTED | Present in the repository and covered by local tests |
-| LOCALLY VERIFIED | Executed on the local macOS ARM64 host |
-| NOT VERIFIED | Needs a real GitHub run |
+| LOCALLY VERIFIED | Executed in the explicitly named local environment, not a hosted-runner result |
+| HOSTED RESULT | Observed in the linked GitHub run, for its exact commit |
+| NOT VERIFIED | Still needs successful execution on the relevant environment |
 
 ## Workflow structure (`.github/workflows/ci.yml`)
 
@@ -55,7 +56,8 @@ lists macOS 15 ARM64 as supported and provides native `osx-arm64` archives
 for 7.4 and stable PowerShell.
 This establishes documented availability, **not execution qualification**:
 runtime OS/architecture/edition/version/runner checks remain mandatory. Neither
-PowerShell provisioning nor PMU tests have yet executed on a GitHub-hosted Mac.
+the documented support alone nor a local Mac result establishes hosted qualification. Both hosted Mac lanes
+subsequently passed in the first run recorded below.
 
 ## PowerShell provisioning
 
@@ -159,9 +161,14 @@ verification, not a new signature/attestation system or independent proof agains
 
 ## Security
 
-Top-level `permissions: contents: read`; no secrets; no `pull_request_target`; no publishing; every action is
+For `.github/workflows/ci.yml`: top-level `permissions: contents: read`; no secrets; no publishing; every action is
 pinned to a full commit SHA with checkout credentials not persisted; PowerShell downloads are hash-verified.
-`tests/repository/CiWorkflow.Tests.ps1` enforces these.
+`tests/repository/CiWorkflow.Tests.ps1` enforces these matrix-specific requirements without applying them to
+the separate publish, analysis, dependency-review, or test/coverage workflows. Those workflows may use
+version-tagged actions, moving runner labels, and purpose-specific permissions and secrets.
+The common prohibition on `pull_request_target` still applies to every workflow, and publishing must not
+trigger on pull requests. This policy scope does not establish release qualification or implement the
+proposed Phase 2 release gate.
 
 ## Initial local validation (historical, before hardening)
 
@@ -272,6 +279,71 @@ skipped. Detailed execution evidence must accompany the summary; changing
 Nova's XML to include per-test identity, outcomes and reasons would be a
 useful future Nova improvement, not part of this task.
 
+## First hosted run and platform fixes (2026-10-23)
+
+[Run 39949417203, attempt 1](https://github.com/stiwicourage/PSModuleUpdate/actions/runs/39949417203)
+executed `develop` commit `649298434aac533bd308270cf10d7aa4607c400b`. This is execution evidence for
+that commit, not proof that subsequent unpushed fixes have passed on GitHub.
+
+| Job/lanes | Hosted result | Observed tests |
+| --- | --- | --- |
+| `plan`, `quality` | Passed | Matrix generation, isolated analyzer dependencies, ScriptAnalyzer and formatting completed |
+| macOS ARM64 / 7.4.21 and stable 7.6.8 | Both passed | Each: 413 unit passes/one expected skip; six integration passes/three expected skips |
+| Windows x64 / 7.4.21 and stable 7.6.8 | Both failed | Each: 407 unit passes/four failures/three expected skips; integration did not execute |
+| Linux x64 / 7.4.21 and stable 7.6.8 | Both failed | Each: 410 unit passes/one failure/three expected skips; integration did not execute |
+| `ci-gate` | Failed as required | Rejected failed matrix status and incomplete/failed lane evidence; did not turn the two passing lanes into a passing matrix |
+
+Provisioning and module saving succeeded on all six hosted lanes. Lane artifact uploads and the gate's
+current-run download succeeded; no actual artifact-digest failure was induced.
+
+The four Windows failures have two causes: two tests compare canonical native paths against manually
+slash-concatenated expectations (`ActiveState.Tests.ps1`, `Assert-SafePath.Tests.ps1`), and the disposable-home
+containment guard in `QualificationSafety.ps1` appends a Unix-only separator, incorrectly rejecting a valid
+Windows child before the symlink guard can execute. Both qualification-safety tests retain their intended
+containment and symlink rejection contracts.
+
+The Linux failure is in `Resolve-RepositoryTransportRoot.Tests.ps1`: it assumes that changing child `HOME`
+never changes the provider's native application-data store. That assumption is not portable to Linux.
+Cooperating processes using the same actual provider store must still resolve the same lease root; the
+test must control and independently verify that shared store rather than assume macOS HOME semantics.
+
+The gate's missing-summary and incomplete-phase messages are consequences of stopping on failed unit
+tests. The gate, skip policy and mandatory phase requirements must not be weakened to hide these failures.
+The fixes require a new hosted run before Windows/Linux or the complete matrix can be called qualified.
+
+The follow-up fixes are limited to `scripts/qualification/QualificationSafety.ps1`,
+`tests/integration/ActiveState.Tests.ps1`, `tests/private/shared/Assert-SafePath.Tests.ps1`,
+`tests/repository/QualificationSafety.Tests.ps1`,
+`tests/private/locking/Resolve-RepositoryTransportRoot.Tests.ps1` and
+`tests/TestHelpers/Get-PMUNativeRegistryRootProbe.ps1`, plus these status/qualification docs.
+Production commands, transport-lock implementation, CI workflow/gate and skip policy are unchanged.
+
+### Post-fix local validation
+
+| Scope and command | Result |
+| --- | --- |
+| `Invoke-NovaTest -TagFilter PMUActualActive,PMUSafePath,RepositoryQualification,PMUUriBridge` under macOS ARM64 / 7.4.21 | 92 passed, zero failures/skips; the same assertions remained green after extracting the native-store probe helpers |
+| `PATH=/tmp/pwsh74:$PATH pwsh -NoLogo -NoProfile -File ./run.ps1` | Exit 0: analyzer, build, 416 unit passes/one expected skip, six integration passes/three expected skips, formatting |
+| `Invoke-PlatformLane.ps1 -LaneId linux-x64-ps74 -ExpectedPowerShellVersion 7.4.21 -ProvisioningFile /linux-tools/provisioning.json -ModuleRoot /linux-tools/pmu-ci-modules-regression` under emulated Linux x64 | Exit 0: build, 414 unit passes/three expected skips, five integration passes/four expected skips; complete lane evidence and owned-dependency cleanup passed |
+
+The Linux check used the official Microsoft `7.4-ubuntu-22.04` container image, digest
+`sha256:62300a213a9293916333df2b014cd3a8f22fb0b0b65f2bb446aaf436bcf8c868`, with
+Linux/amd64 emulation on the local ARM64 Docker host. Its bundled 7.4.6 was only a bootstrap:
+the repository provisioner downloaded/checksum-verified the actual 7.4.21 executable used for qualification.
+This is Ubuntu 22.04 local evidence, not the hosted Ubuntu 24.04 result.
+
+An initial container attempt had 65 ownership-related failures because the supplied numeric UID had no
+matching named account. The corrected disposable container created a real non-root account, its normal
+home/cache/config/data directories, and explicit home-local cache/config paths before dropping privileges.
+Dependency bootstrap initially also failed without those writable cache directories. No ownership guard,
+test assertion or skip policy was changed to accommodate the container. The corrected complete lane passed;
+its data-home behavior remained covered by the actual native-store probes.
+
+The original hosted failures supply pre-fix regression evidence. The local checks establish passing fixes
+on macOS and Linux, not an observed Windows red-to-green run. Windows and both channel variants still need
+the new GitHub matrix execution. The ordinary documented platform skips are unchanged, and no additional
+skip is accepted. The previously recorded manual SIG cleanup remains a separate unresolved readiness item.
+
 ## Hardening file inventory
 
 Paths below are relative to the repository; no production command, Nova, version pin or later-phase workflow
@@ -288,9 +360,10 @@ was changed.
 
 ## Remaining qualification gaps
 
-- First GitHub run of all six lanes; expect and triage failures from tests written on macOS only.
-- Provisioning, disposable `Save-Module` dependencies, explicit executable/process propagation and artifact
-  download/digest behavior on actual hosted Windows, Linux and macOS runners.
+- New GitHub run of the fixes: Windows/Linux unit suites and their not-yet-executed integration phases must
+  pass; both macOS lanes must stay green. The first failed run is preserved above.
+- Exercise artifact-download/digest failure paths and the successful aggregate gate. Provisioning,
+  disposable dependencies and normal artifact transfer have now executed on all hosted platforms.
 - Confirm `ci-gate` as a required status check and `macos-15` arm64.
 - Detailed-log parsing is intentionally tied to the pinned Pester Detailed/Ansi format. A format change must
   fail qualification, not silently fall back to summary-only counts; richer Nova NUnit output remains a

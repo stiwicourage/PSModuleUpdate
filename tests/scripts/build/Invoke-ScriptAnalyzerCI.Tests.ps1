@@ -5,9 +5,10 @@ BeforeAll {
         . $wrapper
     }
     Import-Module PSScriptAnalyzer
+    $script:analyzer = Get-Command Invoke-ScriptAnalyzer -Module PSScriptAnalyzer
 }
 
-Describe 'Repository analyzer entrypoint' -Tag 'BuildTooling' {
+Describe 'Repository analyzer entrypoint' -Tag 'BuildTooling', 'AnalyzerPolicy' {
     BeforeEach {
         $fixture = Join-Path $TestDrive 'project'
         New-Item -ItemType Directory -Path $fixture -Force | Out-Null
@@ -16,6 +17,7 @@ Describe 'Repository analyzer entrypoint' -Tag 'BuildTooling' {
         }
         Set-Content -LiteralPath (Join-Path $fixture 'run.ps1') -Value '$null'
         Mock Invoke-ScriptAnalyzer { }
+        Mock Out-Host { }
     }
 
     It 'analyzes authored sources, tests, helpers and root scripts but not generated output' {
@@ -30,12 +32,30 @@ Describe 'Repository analyzer entrypoint' -Tag 'BuildTooling' {
     }
 
     It 'fails the gate when the analyzer reports findings' {
-        Mock Invoke-ScriptAnalyzer { [pscustomobject]@{ Message = 'Unsafe operation'; Severity = 'Warning' } }
+        Mock Invoke-ScriptAnalyzer { [pscustomobject]@{ RuleName = 'PSAvoidUsingInvokeExpression'; Message = 'Unsafe operation'; Severity = 'Warning' } }
         { Invoke-RepositoryAnalysis -ProjectRoot $fixture } | Should -Throw '*ScriptAnalyzer*'
     }
 
     It 'propagates tool failures instead of reporting a clean result' {
         Mock Invoke-ScriptAnalyzer { throw 'Analyzer unavailable' }
         { Invoke-RepositoryAnalysis -ProjectRoot $fixture } | Should -Throw '*Analyzer unavailable*'
+    }
+
+    It 'does not report intentional Write-Host usage with repository settings' {
+        Set-Content -LiteralPath (Join-Path $fixture 'src/status.ps1') -Value 'Write-Host "Status"'
+        Mock Invoke-ScriptAnalyzer { & $script:analyzer -Path $Path -Recurse:$Recurse -Settings $Settings -ErrorAction Stop }
+
+        { Invoke-RepositoryAnalysis -ProjectRoot $fixture } | Should -Not -Throw
+        Should -Invoke Out-Host -Times 0 -Exactly
+    }
+
+    It 'still fails for other analyzer findings alongside intentional host output' {
+        Set-Content -LiteralPath (Join-Path $fixture 'src/unsafe.ps1') -Value @(
+            'Write-Host "Status"'
+            'Invoke-Expression "Get-Date"'
+        )
+        Mock Invoke-ScriptAnalyzer { & $script:analyzer -Path $Path -Recurse:$Recurse -Settings $Settings -ErrorAction Stop }
+
+        { Invoke-RepositoryAnalysis -ProjectRoot $fixture } | Should -Throw '*ScriptAnalyzer reported 1 finding(s)*'
     }
 }

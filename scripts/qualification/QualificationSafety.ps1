@@ -18,7 +18,8 @@ function Assert-QualificationDestination {
     param([string]$Destination, [string]$HomeRoot)
     $homePath = [IO.Path]::GetFullPath($HomeRoot).TrimEnd([IO.Path]::DirectorySeparatorChar)
     $targetPath = [IO.Path]::GetFullPath($Destination)
-    if (-not $targetPath.StartsWith("$homePath/", [StringComparison]::Ordinal)) {
+    $homeBoundary = $homePath + [IO.Path]::DirectorySeparatorChar
+    if (-not $targetPath.StartsWith($homeBoundary, [StringComparison]::Ordinal)) {
         throw 'Provider destination is outside the disposable home.'
     }
     Assert-QualificationUnlinkedPath $targetPath

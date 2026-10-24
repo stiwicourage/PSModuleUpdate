@@ -6,4 +6,12 @@ Describe 'Assert-RecoveryJournalSchema' -Tag 'PMU' {
         $journal | Add-Member ArbitraryValue 'unexpected'
         { Assert-RecoveryJournalSchema $journal } | Should -Throw -ErrorId 'PMU.RecoveryRequired'
     }
+    It 'rejects reference and backup trees that are not arrays' {
+        $journal = ConvertTo-RecoveryJournal (Initialize-PMUTestOperation $TestDrive) @()
+        $journal.StagedTree = 'not-an-array'
+        { Assert-RecoveryJournalSchema $journal } | Should -Throw -ErrorId 'PMU.RecoveryRequired'
+        $journal.StagedTree = @()
+        $journal.BackupTree = 'not-an-array'
+        { Assert-RecoveryJournalSchema $journal } | Should -Throw -ErrorId 'PMU.RecoveryRequired'
+    }
 }

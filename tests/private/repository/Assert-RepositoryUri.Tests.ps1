@@ -8,4 +8,7 @@ Describe 'Assert-RepositoryUri' -Tag 'PMU' {
         Assert-RepositoryUri ([uri]'https://example.invalid/feed/') | Should -Be 'https://example.invalid/feed'
         { Assert-RepositoryUri ([uri]'https://user:secret@example.invalid/feed') } | Should -Throw -ErrorId 'PMU.InvalidRequest'
     }
+    It 'rejects a relative endpoint' {
+        { Assert-RepositoryUri ([uri]::new('feed/path', [UriKind]::Relative)) } | Should -Throw -ErrorId 'PMU.InvalidRequest'
+    }
 }

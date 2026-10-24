@@ -25,7 +25,7 @@ Describe 'PMU actual loaded state' -Tag 'PMUActualActive' {
         Mock Get-Module { $script:actualLoaded }
         $plan = Get-PSModuleUpdate -Module $repositoryFixture.Module -Repository PublicFixture -Policy @{ Channel = 'IncludePrerelease' }
         $plan.ActiveVersion | Should -Be '1.0.0'
-        $plan.ActivePath | Should -Be "$path/$($repositoryFixture.Name).psd1"
+        $plan.ActivePath | Should -Be (Join-Path $path "$($repositoryFixture.Name).psd1")
         $plan.ActiveScope | Should -Be AllUsers
         $plan.InstalledVersion | Should -Be '2.0.0-preview.1'
     }

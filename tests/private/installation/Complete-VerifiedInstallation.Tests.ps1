@@ -12,4 +12,13 @@ Describe 'Complete-VerifiedInstallation' -Tag 'PMU' {
             Should -Invoke Install-ProviderResource -Times 0
         }
     }
+    It 'rejects a plan that does not authorize a newer target before changing anything' {
+        $operation = Initialize-PMUTestOperation $TestDrive
+        $operation.Plan.UpdateAvailable = $false
+        Mock Initialize-Replacement {}
+        Mock Invoke-ProviderInstallation {}
+        { Complete-VerifiedInstallation $operation @() $false } | Should -Throw -ErrorId 'PMU.PlanStale'
+        Should -Invoke Initialize-Replacement -Times 0
+        Should -Invoke Invoke-ProviderInstallation -Times 0
+    }
 }

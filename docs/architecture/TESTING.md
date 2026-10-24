@@ -10,7 +10,7 @@ defined by `project.json`; the module root and manifest are generated under
 pwsh -NoLogo -NoProfile -File ./run.ps1
 ```
 
-GitHub Actions (`.github/workflows/ci.yml`, not yet run on GitHub) runs the same Nova build, unit and
+GitHub Actions (`.github/workflows/ci.yml`) runs the same Nova build, unit and
 integration phases per platform lane through
 `./scripts/build/ci/Invoke-PlatformLane.ps1 -LaneId <lane-id>`; see
 [G4A4/PHASE1_IMPLEMENTATION.md](G4A4/PHASE1_IMPLEMENTATION.md).
@@ -31,16 +31,21 @@ autoloading Pester 6 and causing an assembly collision when Nova selects Pester
 A failed prerequisite stops the pipeline. The analyzer covers authored source,
 tests, helpers, and root PowerShell scripts, not generated `dist/` or
 `artifacts/` files. Its settings retain default rules and fail on Error or
-Warning diagnostics; no rule suppression is added for this module.
+Warning diagnostics, except the approved `PSAvoidUsingWriteHost` exclusion in
+the shared settings for intentional host output.
 
 Use `Invoke-NovaTest -TagFilter BuildTooling` for the quality-entrypoint tests.
 Use `Invoke-NovaTest` for unit validation and `Test-NovaBuild` for the separate
 built-module integration flow. Do not substitute a direct Pester invocation:
 Nova owns discovery, supported Pester selection, StrictMode, and result output.
 
-Nova writes unit results to `artifacts/UnitTestResults.xml`. Coverage is disabled
-in the initial scaffold configuration; test counts do not establish a measured
-coverage percentage.
+Nova writes unit results to `artifacts/UnitTestResults.xml`. Unit coverage is
+enabled in `project.json`, targets the authored source paths, and writes JaCoCo
+to `artifacts/coverage.xml` with the existing 90 percent target. Integration
+tests remain a separate phase and do not generate the unit coverage report.
+The test/coverage workflow runs `Invoke-NovaTest` before `Test-NovaBuild` and
+uploads that report for CodeScene and Codecov; test counts alone do not
+establish a measured coverage percentage.
 
 ### Phase 1 skips and platform evidence
 
@@ -82,8 +87,10 @@ before/after dependency and repository-store fingerprints were unchanged.
 
 GitHub's current standard public-runner reference explicitly maps `macos-15`
 to ARM64; this documented mapping does not replace runtime validation or the
-first real six-lane GitHub execution. No Windows/Linux qualification is
-inferred from local macOS results.
+real six-lane GitHub execution. The first hosted run passed both Mac lanes but
+failed Windows/Linux unit tests; see the [hosted result and fixes](G4A4/PHASE1_IMPLEMENTATION.md#first-hosted-run-and-platform-fixes-2026-10-23).
+The complete matrix remains unqualified until the fixes pass on GitHub.
+No Windows/Linux qualification is inferred from local macOS results.
 
 ## Test ownership
 
@@ -114,6 +121,14 @@ PSResourceGet may use the real user's application-data directory. Use only
 uniquely named test-owned registrations, remove only those registrations in
 cleanup, and compare the pre-existing registration state before and afterward.
 Never restore an entire registration file over possible concurrent changes.
+
+Linux has a different native-store rule: `LocalApplicationData` follows
+`XDG_DATA_HOME`, or the child HOME's `.local/share` when that variable is unset.
+Two different HOMEs therefore need not share a repository store or transport
+lease. Shared-store coordination tests must explicitly select a common native
+store and independently verify the provider's actual location. This does not
+change the production rule that cooperating operations on the same store must
+share their transport lease.
 
 Use child processes for exclusive-lock contention, holder termination,
 loaded-module behavior, and interrupted replacement. Preserve usable backup and

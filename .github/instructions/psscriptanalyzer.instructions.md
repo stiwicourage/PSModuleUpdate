@@ -28,7 +28,7 @@ Use this file when changing PowerShell code, tests, build helpers, or analyzer w
     - if using `-Fix`, run `-WhatIf` first and inspect the diff afterwards
     - do not use `-EnableExit` when the repository wrapper already defines failure semantics
 5. Treat `Error`, `Warning`, and `ParseError` diagnostics as findings to fix before opening a pull request or passing the change to a reviewer. Parser errors are analyzer diagnostics too and are not something to suppress away.
-6. Do not add ad hoc `ExcludeRule`, `ExcludeRules`, `SuppressMessageAttribute`, or custom settings changes just to make the analyzer pass. Only keep analyzer exceptions explicitly present in the wrapper-owned `$settingsPath` configuration in `./scripts/build/Invoke-ScriptAnalyzerCI.ps1` and justified narrowly.
+6. Do not add ad hoc `ExcludeRule`, `ExcludeRules`, `SuppressMessageAttribute`, or custom settings changes just to make the analyzer pass. Only keep analyzer exceptions explicitly present in the wrapper-owned `$settingsPath` configuration in `./scripts/build/Invoke-ScriptAnalyzerCI.ps1` and justified narrowly. The approved `PSAvoidUsingWriteHost` exclusion in `scripts/build/PSScriptAnalyzerSettings.psd1` permits intentional host output in this PowerShell 7.4+ project; it does not exclude other rules.
 7. `Invoke-ScriptAnalyzer -Fix` is optional and only applies to selected rules. Review every change it would make, prefer `-WhatIf` first, and inspect the diff afterwards.
 8. `Invoke-ScriptAnalyzer -EnableExit` is useful for CI shells, but if the repository already has a wrapper with established failure semantics, do not replace that wrapper with an ad hoc direct invocation.
 

@@ -9,4 +9,9 @@ Describe 'Initialize-Replacement' -Tag 'PMU' {
         Test-Path $operation.BackupPath | Should -BeFalse
         $operation.Journal.State | Should -Be 'Preparation'
     }
+    It 'refuses to replace an installed target that has a different GUID' {
+        $operation = Initialize-PMUTestOperation $TestDrive
+        $null = Initialize-PMUTestPackage $operation.Plan.DestinationRoot '2.0.0-preview.2' ([guid]::NewGuid())
+        { Initialize-Replacement $operation @() } | Should -Throw -ErrorId 'PMU.GuidMismatch'
+    }
 }

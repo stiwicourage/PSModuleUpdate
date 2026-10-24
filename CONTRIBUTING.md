@@ -49,7 +49,8 @@ Recommended flow:
     - Use `/agent release-manager`, `.github/agents/release-manager.agent.md`, and `.github/prompts/prepare-release.prompt.md` when release-facing files change.
 
 The [G-4A4 plan](docs/architecture/G4A4/README.md) designs the GitHub Actions matrix and release gating. Phase 1
-(`.github/workflows/ci.yml`, `scripts/build/ci/`) is implemented locally but has **not yet run on GitHub**; see
+(`.github/workflows/ci.yml`, `scripts/build/ci/`) has executed on GitHub: both macOS lanes passed, while
+Windows/Linux fixes still require a successful rerun; see
 [PHASE1_IMPLEMENTATION.md](docs/architecture/G4A4/PHASE1_IMPLEMENTATION.md) for triggers, lanes, the `ci-gate`,
 artifacts and local validation. To reproduce a lane locally, run
 `pwsh -NoLogo -NoProfile -File ./scripts/build/ci/Invoke-PlatformLane.ps1 -LaneId <lane-id>` on a matching OS,
@@ -61,3 +62,21 @@ it does not install dependencies in CurrentUser or AllUsers. Existing
 PSResourceGet repository state is preserved by the provider fixtures, not by
 assuming that `HOME` or `PSModulePath` redirects registrations. Unexpected
 skips and incomplete XML/log/runtime evidence fail the lane.
+
+The separate `Run Tests` workflow also saves dependencies to an owned temporary
+root. Each PowerShell consumer step uses the install step's `moduleRoot` output
+to set an isolated `PSModulePath`; installed modules and imports do not carry
+over automatically between steps. An always-run cleanup step validates ownership
+before removing that root, including when tests or changelog validation fail.
+Its CI script runs `Invoke-NovaTest` before `Test-NovaBuild`: unit tests generate
+`artifacts/coverage.xml` from the enabled `project.json` JaCoCo configuration,
+and the uploaded artifact supplies CodeScene and Codecov. Integration results
+alone are not coverage evidence.
+
+Workflow policy tests distinguish the platform matrix from the other workflows.
+`ci.yml` retains full-SHA action pins, fixed runner labels, read-only permissions,
+and no secrets or publishing. Separate test/coverage, analysis, dependency-review,
+and publish workflows may use version-tagged actions, moving runner labels, and
+their purpose-specific permissions and secrets. All workflows reject
+`pull_request_target`, and the dedicated publisher must not trigger on pull requests.
+These policy checks do not qualify publishing or verify hosted execution.

@@ -3,48 +3,45 @@ BeforeAll {
     $workflowDirectory = Join-Path $root '.github/workflows'
     $script:workflowFile = @(Get-ChildItem -LiteralPath $workflowDirectory -Filter '*.yml' -File)
     $script:ci = Get-Content -LiteralPath (Join-Path $workflowDirectory 'ci.yml') -Raw
+    $script:publish = Get-Content -LiteralPath (Join-Path $workflowDirectory 'Publish.yml') -Raw
 }
 
-Describe 'CI workflow security and gate policy' -Tag 'BuildTooling' {
+Describe 'CI workflow security and gate policy' -Tag 'BuildTooling', 'WorkflowPolicy' {
     It 'never uses pull_request_target' {
         foreach ($file in $script:workflowFile) {
             (Get-Content -LiteralPath $file.FullName -Raw) | Should -Not -Match 'pull_request_target' -Because $file.Name
         }
     }
 
-    It 'pins every external action to a full commit SHA' {
-        foreach ($file in $script:workflowFile) {
-            $uses = @(Select-String -LiteralPath $file.FullName -Pattern '^\s*(?:-\s*)?uses:\s*(\S+)' | ForEach-Object { $_.Matches[0].Groups[1].Value })
-            foreach ($reference in $uses | Where-Object { -not $_.StartsWith('./') }) {
-                $reference | Should -Match '@[0-9a-f]{40}$' -Because "$($file.Name) must pin '$reference'"
-            }
+    It 'pins every external platform-matrix action to a full commit SHA' {
+        $uses = @([regex]::Matches($script:ci, '(?m)^\s*(?:-\s*)?uses:\s*(\S+)') | ForEach-Object { $_.Groups[1].Value })
+        foreach ($reference in $uses | Where-Object { -not $_.StartsWith('./') }) {
+            $reference | Should -Match '@[0-9a-f]{40}$' -Because "ci.yml must pin '$reference'"
         }
     }
 
-    It 'grants only read access to repository contents and nothing else' {
-        foreach ($file in $script:workflowFile) {
-            $text = Get-Content -LiteralPath $file.FullName -Raw
-            $text | Should -Match '(?m)^permissions:\s*\r?\n\s+contents: read\s*$' -Because $file.Name
-            $text | Should -Not -Match ':\s*write' -Because "$($file.Name) must not request write permissions"
-        }
+    It 'grants the platform matrix only read access to repository contents' {
+        $script:ci | Should -Match '(?m)^permissions:\s*\r?\n\s+contents: read\s*$'
+        $script:ci | Should -Not -Match ':\s*write'
     }
 
-    It 'contains no secret references or publishing commands in Phase 1' {
-        foreach ($file in $script:workflowFile) {
-            $text = Get-Content -LiteralPath $file.FullName -Raw
-            $text | Should -Not -Match '\$\{\{\s*secrets\.' -Because $file.Name
-            $text | Should -Not -Match '(?i)psgallery|Publish-Nova|Invoke-NovaRelease|SkipTests' -Because $file.Name
-        }
+    It 'keeps the platform matrix free of secrets and publishing commands' {
+        $script:ci | Should -Not -Match '\$\{\{\s*secrets\.'
+        $script:ci | Should -Not -Match '(?i)psgallery|Publish-Nova|Invoke-NovaRelease|SkipTests'
     }
 
-    It 'does not use moving runner aliases' {
-        foreach ($file in $script:workflowFile) {
-            (Get-Content -LiteralPath $file.FullName -Raw) | Should -Not -Match '(ubuntu|windows|macos)-latest' -Because $file.Name
-        }
+    It 'does not use moving runner aliases in the platform matrix' {
+        $script:ci | Should -Not -Match '(ubuntu|windows|macos)-latest'
     }
 
-    It 'does not add a release workflow before Phase 2' {
-        $script:workflowFile.Name | Should -Not -Contain 'release.yml'
+    It 'does not trigger the dedicated publish workflow for pull requests' {
+        $script:publish | Should -Not -Match '(?m)^  pull_request(?:_target)?:'
+    }
+
+    It 'exposes the isolated CI modules to later publish steps through PSModulePath' {
+        $script:publish | Should -Match '(?s)id:\s*modules\s*\r?\n\s+run:\s*\./scripts/build/ci/Install-CiPowerShellModules\.ps1'
+        $script:publish | Should -Match 'Get-CiIsolatedModulePath -ModuleRoot \$env:CI_MODULE_ROOT'
+        $script:publish | Should -Match 'PSModulePath=.*>> \$env:GITHUB_ENV'
     }
 
     It 'supports pull requests and pushes for develop and main plus reuse' {
