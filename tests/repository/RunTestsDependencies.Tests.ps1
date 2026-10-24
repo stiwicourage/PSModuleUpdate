@@ -27,9 +27,12 @@ BeforeAll {
 }
 
 Describe 'Run Tests dependency lifecycle' -Tag 'BuildTooling', 'RunTestsDependencies' {
-    It 'exposes the saved root through a named install step' {
-        $step = Get-DependencyWorkflowStep 'Install required CI PowerShell modules'
-        $step | Should -Match '(?m)^        id: modules$'
+    It 'exposes the saved root through a named install step with <LineEnding> line endings' -ForEach @(
+        @{ LineEnding = 'LF'; NewLine = "`n" }
+        @{ LineEnding = 'CRLF'; NewLine = "`r`n" }
+    ) {
+        $step = (Get-DependencyWorkflowStep 'Install required CI PowerShell modules') -replace '\r?\n', $NewLine
+        $step | Should -Match '(?m)^        id: modules\r?$'
         $step | Should -Match 'run: ./scripts/build/ci/Install-CiPowerShellModules.ps1'
     }
 
