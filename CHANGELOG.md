@@ -31,6 +31,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Local Nova quality entrypoints with strict ScriptAnalyzer findings,
   build/unit/integration ordering, failure propagation, and formatting checks.
   Compatible installed Pester selection prevents a Pester 5/6 assembly collision.
+  The shared analyzer settings exclude `PSAvoidUsingWriteHost` because host
+  output is intentional; other analyzer findings remain blocking.
 - Opt-in disposable live qualification for PSGallery, NuGet.org nonmodule
   rejection, and caller-approved authenticated private feeds, with explicit
   registration cleanup and artifact-specific evidence.
