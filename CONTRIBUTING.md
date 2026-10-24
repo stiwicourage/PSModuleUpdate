@@ -68,3 +68,11 @@ root. Each PowerShell consumer step uses the install step's `moduleRoot` output
 to set an isolated `PSModulePath`; installed modules and imports do not carry
 over automatically between steps. An always-run cleanup step validates ownership
 before removing that root, including when tests or changelog validation fail.
+
+Workflow policy tests distinguish the platform matrix from the other workflows.
+`ci.yml` retains full-SHA action pins, fixed runner labels, read-only permissions,
+and no secrets or publishing. Separate test/coverage, analysis, dependency-review,
+and publish workflows may use version-tagged actions, moving runner labels, and
+their purpose-specific permissions and secrets. All workflows reject
+`pull_request_target`, and the dedicated publisher must not trigger on pull requests.
+These policy checks do not qualify publishing or verify hosted execution.

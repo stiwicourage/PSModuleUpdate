@@ -161,9 +161,14 @@ verification, not a new signature/attestation system or independent proof agains
 
 ## Security
 
-Top-level `permissions: contents: read`; no secrets; no `pull_request_target`; no publishing; every action is
+For `.github/workflows/ci.yml`: top-level `permissions: contents: read`; no secrets; no publishing; every action is
 pinned to a full commit SHA with checkout credentials not persisted; PowerShell downloads are hash-verified.
-`tests/repository/CiWorkflow.Tests.ps1` enforces these.
+`tests/repository/CiWorkflow.Tests.ps1` enforces these matrix-specific requirements without applying them to
+the separate publish, analysis, dependency-review, or test/coverage workflows. Those workflows may use
+version-tagged actions, moving runner labels, and purpose-specific permissions and secrets.
+The common prohibition on `pull_request_target` still applies to every workflow, and publishing must not
+trigger on pull requests. This policy scope does not establish release qualification or implement the
+proposed Phase 2 release gate.
 
 ## Initial local validation (historical, before hardening)
 
