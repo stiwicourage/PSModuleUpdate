@@ -38,6 +38,12 @@ Describe 'CI workflow security and gate policy' -Tag 'BuildTooling', 'WorkflowPo
         $script:publish | Should -Not -Match '(?m)^  pull_request(?:_target)?:'
     }
 
+    It 'exposes the isolated CI modules to later publish steps through PSModulePath' {
+        $script:publish | Should -Match '(?s)id:\s*modules\s*\r?\n\s+run:\s*\./scripts/build/ci/Install-CiPowerShellModules\.ps1'
+        $script:publish | Should -Match 'Get-CiIsolatedModulePath -ModuleRoot \$env:CI_MODULE_ROOT'
+        $script:publish | Should -Match 'PSModulePath=.*>> \$env:GITHUB_ENV'
+    }
+
     It 'supports pull requests and pushes for develop and main plus reuse' {
         $script:ci | Should -Match '(?m)^\s+pull_request:'
         $script:ci | Should -Match '(?m)^\s+push:'
