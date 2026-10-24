@@ -28,17 +28,36 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install required CI PowerShell modules
+        id: modules
         run: ./scripts/build/ci/Install-CiPowerShellModules.ps1
 
       - name: Run NovaModuleTools CI test and coverage workflow
-        run: ./scripts/build/ci/Invoke-NovaModuleToolsCI.ps1 -OutputDirectory ./artifacts
+        env:
+          CI_MODULE_ROOT: ${{ steps.modules.outputs.moduleRoot }}
+        run: |
+          . ./scripts/build/ci/CiDependencyRoot.ps1
+          $env:PSModulePath = Get-CiIsolatedModulePath -ModuleRoot $env:CI_MODULE_ROOT
+          ./scripts/build/ci/Invoke-NovaModuleToolsCI.ps1 -OutputDirectory ./artifacts
 
       - name: Validate repository changelog with Test-KeepAChangelogFile
+        env:
+          CI_MODULE_ROOT: ${{ steps.modules.outputs.moduleRoot }}
         run: |
+          . ./scripts/build/ci/CiDependencyRoot.ps1
+          $env:PSModulePath = Get-CiIsolatedModulePath -ModuleRoot $env:CI_MODULE_ROOT
+          Import-Module NovaModuleTools -ErrorAction Stop
           $result = Test-KeepAChangelogFile -Path ./CHANGELOG.md
           if (-not $result.IsValid) {
             throw ($result.Errors -join [Environment]::NewLine)
           }
+
+      - name: Clean owned CI dependencies
+        if: ${{ always() && steps.modules.outputs.moduleRoot != '' }}
+        env:
+          CI_MODULE_ROOT: ${{ steps.modules.outputs.moduleRoot }}
+        run: |
+          . ./scripts/build/ci/CiDependencyRoot.ps1
+          Remove-CiDependencyRoot -Owner (Get-CiDependencyOwner -Path $env:CI_MODULE_ROOT)
 
       - name: Upload CI artifacts
         if: always()

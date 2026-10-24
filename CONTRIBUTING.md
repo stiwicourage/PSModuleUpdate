@@ -62,3 +62,9 @@ it does not install dependencies in CurrentUser or AllUsers. Existing
 PSResourceGet repository state is preserved by the provider fixtures, not by
 assuming that `HOME` or `PSModulePath` redirects registrations. Unexpected
 skips and incomplete XML/log/runtime evidence fail the lane.
+
+The separate `Run Tests` workflow also saves dependencies to an owned temporary
+root. Each PowerShell consumer step uses the install step's `moduleRoot` output
+to set an isolated `PSModulePath`; installed modules and imports do not carry
+over automatically between steps. An always-run cleanup step validates ownership
+before removing that root, including when tests or changelog validation fail.
