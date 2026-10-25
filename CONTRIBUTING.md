@@ -36,6 +36,11 @@ Before opening a pull request:
 
 ## Agentic Copilot workflow
 
+Follow the [CI parity and readiness gate](.github/instructions/repository-conventions.instructions.md#ci-parity-and-readiness)
+for every implementation or test change. A local pass is not a six-lane matrix
+pass; report the tested runtime/dependencies and any pending or failing hosted
+jobs for the exact revision.
+
 Recommended flow:
 
 1. **Design**

@@ -25,7 +25,7 @@ Describe 'Get-InstalledModuleIdentityList' -Tag 'PMU' {
         $identity = @(Get-InstalledModuleIdentityList 'FixtureModule' 'AllUsers')
         $identity.Count | Should -Be 1
         $identity[0].FullVersion | Should -Be '0.1.0'
-        $identity[0].ManifestPath | Should -Be "$path/FixtureModule.psd1"
+        $identity[0].ManifestPath | Should -Be (Join-Path $path 'FixtureModule.psd1')
         "$moduleRoot/en-US", "$moduleRoot/resources", "$moduleRoot/FixtureModule.psd1" |
             ForEach-Object { $_ | Should -Exist }
     }
