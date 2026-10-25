@@ -52,6 +52,12 @@ two default to null. IncludePrerelease includes stable releases as well.
 The explicitly selected scope must already contain the matching name and GUID;
 PMU never creates a shadow installation or changes scope.
 
+Ordinary resource folders beside numeric version directories do not count as
+installed copies. This allows a versioned installation to coexist with resource
+folders left by a legacy flat installation, without migrating or selecting the
+flat copy. Numeric directories and directories containing the target module's
+manifest still undergo manifest and layout validation.
+
 The manifest supplies installed prerelease identity. The `Active*` fields
 describe a matching module actually loaded in the session and are null when
 the target is unloaded.

@@ -16,6 +16,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Fixed installed-copy discovery failing before repository lookup when a legacy
+  flat installation leaves resource directories beside numeric version folders.
+  Ordinary resource folders are excluded, while numeric folders with missing
+  manifests and manifest-bearing invalid layouts still fail validation. No
+  installation is migrated or removed.
+
 ### Security
 
 ## [0.1.0] - 2026-10-24
