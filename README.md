@@ -58,6 +58,13 @@ not silently create a copy in another scope or fall back to CurrentUser when
 AllUsers is not writable. Run in an appropriately authorized shell when system
 permissions are necessary; PMU never requests elevation.
 
+Installed-copy discovery ignores ordinary resource directories, including
+`en-US` and `resources`, beside numeric version directories. A legacy flat
+copy may coexist with a versioned installation without blocking discovery;
+PMU does not migrate or select that flat copy as a versioned installation.
+Numeric version directories and other directories containing the target
+module's manifest remain subject to manifest and layout validation.
+
 `IncludePrerelease` considers stable and prerelease releases together. Complete
 versions use semantic prerelease ordering: `preview.10` follows `preview.2`,
 and a stable release follows prereleases with the same numeric base.

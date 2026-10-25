@@ -28,4 +28,7 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
 
 ### Fixed
 
+- Update checks no longer fail merely because `en-US` or `resources` folders
+  coexist with a versioned module installation. Existing files are left intact.
+
 ### Security
