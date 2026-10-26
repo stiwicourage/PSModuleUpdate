@@ -1,9 +1,14 @@
 BeforeAll { . "$PSScriptRoot/../../TestHelpers/Import-PMUTestSource.ps1" }
 Describe 'Get-ProviderMutationParameter' -Tag 'PMU' {
-    It 'binds an exact target, quiet operation and explicit consent without reinstall' {
+    It 'forwards exact target <Version> without range syntax and preserves consent' -ForEach @(
+        @{ Version = '2.0.0' }
+        @{ Version = '2.0.0-preview.2' }
+        @{ Version = '0.1.1-preview01' }
+    ) {
         $operation = Initialize-PMUTestOperation $TestDrive
+        $operation.Plan.TargetVersion = $Version
         $parameters = Get-ProviderMutationParameter $operation
-        $parameters.Version | Should -Be '[2.0.0-preview.2]'
+        $parameters.Version | Should -BeExactly $Version
         $parameters.Quiet | Should -BeTrue
         $parameters.Confirm | Should -BeFalse
         $parameters.ContainsKey('Reinstall') | Should -BeFalse

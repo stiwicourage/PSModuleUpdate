@@ -28,6 +28,9 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
 
 ### Fixed
 
+- Updates now request the exact selected version in the form accepted by the
+  download provider, including prereleases such as `0.1.1-preview01`.
+  Dependencies must still resolve successfully before installation can finish.
 - Update checks no longer fail merely because `en-US` or `resources` folders
   coexist with a versioned module installation. Existing files are left intact.
 

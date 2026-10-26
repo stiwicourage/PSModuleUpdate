@@ -16,6 +16,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Forward the complete planned target version unchanged to PSResourceGet save
+  and install operations instead of wrapping it in NuGet range brackets.
+  Bracketed prerelease targets could be discovered but failed during staging
+  from PSGallery. Exact target verification, consent and dependency checks
+  remain enabled.
 - Fixed installed-copy discovery failing before repository lookup when a legacy
   flat installation leaves resource directories beside numeric version folders.
   Ordinary resource folders are excluded, while numeric folders with missing
