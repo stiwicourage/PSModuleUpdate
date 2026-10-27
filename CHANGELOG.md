@@ -28,6 +28,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Declare Microsoft.PowerShell.PSResourceGet 1.2.0 as PMU's exact runtime
+  dependency so generated module manifests enforce the qualified provider
+  baseline before PMU commands run.
 - Linux worker ownership checks no longer reject a live approving process
   because of inconsistent cross-process timestamps. Exact PID-reuse protection
   remains enabled. Legacy Linux repository receipts require explicit recovery

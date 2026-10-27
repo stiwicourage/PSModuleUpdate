@@ -10,6 +10,12 @@
     "Author": "Stiwi Gabriel Courage",
     "PowerShellHostVersion": "7.4",
     "GUID": "cc2a0585-ae0a-49df-a47a-2e70de88428f",
+    "RequiredModules": [
+      {
+        "ModuleName": "Microsoft.PowerShell.PSResourceGet",
+        "RequiredVersion": "1.2.0"
+      }
+    ],
     "Tags": [],
     "ProjectUri": ""
   },

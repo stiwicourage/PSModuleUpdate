@@ -35,6 +35,7 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
 
 ### Fixed
 
+- PMU now declares its qualified PSResourceGet 1.2.0 runtime dependency.
 - Linux updates no longer falsely reject a live approving process. Legacy
   Linux repository receipts require
   [authorized manual review](docs/architecture/RECOVERY.md#interrupted-repository-transport)

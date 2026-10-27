@@ -12,11 +12,12 @@ on PMU or contain any PMU-specific code.
 
 PSModuleUpdate separates read-only discovery from an explicitly approved
 installation. It targets PowerShell 7.4+ and uses
-`Microsoft.PowerShell.PSResourceGet` 1.2.0 for discovery. The unreleased update
-implementation uses PowerShellGet 2.2.5 and PackageManagement 1.4.8.1 for
-staging and native `Update-Module`, without Force or an `Install-Module` fallback.
-It never persistently configures consumer repositories, stores credentials,
-elevates privileges, or reloads the updated module.
+`Microsoft.PowerShell.PSResourceGet` 1.2.0 for discovery and declares that exact
+version as a module dependency. The unreleased update implementation uses
+PowerShellGet 2.2.5 and PackageManagement 1.4.8.1 for staging and native
+`Update-Module`, without Force or an `Install-Module` fallback. It never
+persistently configures consumer repositories, stores credentials, elevates
+privileges, or reloads the updated module.
 
 **Native prerelease scope:** use provider-compatible labels such as `preview1`
 or `preview03`, matching the Gerber/NovaModuleTools release workflow.
