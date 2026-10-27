@@ -62,12 +62,24 @@ Describe 'Get-CiModuleInstallParameter' -Tag 'BuildTooling' {
             Should -Invoke Start-Sleep -Times 2 -Exactly
         }
 
-        It 'stops after three failed downloads and removes the failed owned root and temporary registration' {
+        It 'recovers when Gallery remains unavailable for the first three downloads' {
+            Mock Save-Module {
+                $script:saveAttempts++
+                if ($script:saveAttempts -lt 4) { throw 'Gallery package endpoint is temporarily unavailable.' }
+            }
+            $path = Join-Path $TestDrive 'pmu-ci-modules-extended-retry'
+            $null = Save-CiPowerShellModule -Name Pester -ModuleRoot $path
+            Should -Invoke Save-Module -Times 4 -Exactly
+            Should -Invoke Start-Sleep -Times 3 -Exactly
+        }
+
+        It 'stops after five failed downloads and removes the failed owned root and temporary registration' {
             $script:galleryPresent = $false
             Mock Save-Module { throw 'Persistent package download failure.' }
             $path = Join-Path $TestDrive 'pmu-ci-modules-failed-download'
             { Save-CiPowerShellModule -Name Pester -ModuleRoot $path } | Should -Throw '*Persistent package download failure*'
-            Should -Invoke Save-Module -Times 3 -Exactly
+            Should -Invoke Save-Module -Times 5 -Exactly
+            Should -Invoke Start-Sleep -Times 4 -Exactly
             Test-Path -LiteralPath $path | Should -BeFalse
             $script:galleryPresent | Should -BeFalse
             Should -Invoke Assert-CiDependencyClosure -Times 0

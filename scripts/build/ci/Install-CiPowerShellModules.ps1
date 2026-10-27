@@ -10,6 +10,7 @@ $script:PinnedVersion = @{
     Pester = '5.7.1'
     'Microsoft.PowerShell.PSResourceGet' = '1.2.0'
 }
+$script:DownloadAttemptLimit = 5
 
 function Get-CiModuleInstallParameter {
     [CmdletBinding()]
@@ -102,13 +103,13 @@ function Close-CiGallery {
 
 function Save-CiModuleDownload {
     param([hashtable]$Parameter)
-    foreach ($attempt in 1..3) {
+    foreach ($attempt in 1..$script:DownloadAttemptLimit) {
         try {
             $null = Save-Module @Parameter
             return
         } catch {
-            if ($attempt -eq 3) { throw }
-            Write-Warning "CI download for '$($Parameter.Name)' failed (attempt $attempt/3); retrying the same Gallery request."
+            if ($attempt -eq $script:DownloadAttemptLimit) { throw }
+            Write-Warning "CI download for '$($Parameter.Name)' failed (attempt $attempt/$script:DownloadAttemptLimit); retrying the same Gallery request."
             Start-Sleep -Seconds $attempt
         }
     }
