@@ -5,7 +5,19 @@ BeforeAll {
     $imports = $sources | ForEach-Object { ". '$($_.Replace("'", "''"))'" }
     $script:identityCommand = ($imports -join "`n") + "`nGet-RepositoryProcessStart $PID"
 }
-Describe 'Get-RepositoryProcessStart' -Tag 'PMUUriBridge' {
+Describe 'Get-RepositoryProcessStart' -Tag 'PMUUriBridge', 'PMUCoverageFollowUp' {
+    It 'returns no owner identity when the platform reports an absent process' {
+        Mock Get-PlatformRepositoryProcessStart { throw [ArgumentException]::new('Process does not exist.') }
+        Get-RepositoryProcessStart 1234 | Should -BeNullOrEmpty
+        Should -Invoke Get-PlatformRepositoryProcessStart -Times 1 -Exactly -ParameterFilter { $ProcessId -eq 1234 }
+    }
+
+    It 'requires recovery when the platform cannot verify a receipt owner' {
+        Mock Get-PlatformRepositoryProcessStart { throw [InvalidOperationException]::new('Untrusted process detail.') }
+        { Get-RepositoryProcessStart 1234 } |
+            Should -Throw -ErrorId 'PMU.RepositoryRecoveryRequired' -ExpectedMessage 'Cannot verify the repository receipt owner process.'
+    }
+
     Context 'PID reuse resistant owner identity' {
         It 'reports an 18-digit current process identity and absence of a nonexistent PID' {
             Get-RepositoryProcessStart $PID | Should -Match '^[0-9]{18}$'

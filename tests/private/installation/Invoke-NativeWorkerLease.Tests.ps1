@@ -1,5 +1,5 @@
 BeforeAll { . "$PSScriptRoot/../../TestHelpers/Import-PMUTestSource.ps1" }
-Describe 'Invoke-NativeWorkerLease' -Tag 'PMU', 'PMUNativeHandoff' {
+Describe 'Invoke-NativeWorkerLease' -Tag 'PMU', 'PMUNativeHandoff', 'PMUCoverageFollowUp' {
     BeforeEach {
         $operation = Initialize-PMURecoveryFixture $TestDrive
         $script:workerContext = [pscustomobject]@{
@@ -10,6 +10,20 @@ Describe 'Invoke-NativeWorkerLease' -Tag 'PMU', 'PMUNativeHandoff' {
         }
         $script:journalHash = (Get-FileHash $operation.JournalPath).Hash
     }
+    It 'checks the selected installation, forwards the owned result and releases the original lock' {
+        Mock Assert-NativeSelectedInstallation {}
+        Mock Invoke-OwnedNativeUpdate { [pscustomobject]@{ Success = $true; Token = $workerContext.Token } }
+        Mock Write-NativeWorkerMessage {}
+        Invoke-NativeWorkerLease $workerContext
+        Should -Invoke Assert-NativeSelectedInstallation -Times 1 -Exactly -ParameterFilter { $Context -eq $workerContext }
+        Should -Invoke Invoke-OwnedNativeUpdate -Times 1 -Exactly -ParameterFilter { $Context -eq $workerContext }
+        Should -Invoke Write-NativeWorkerMessage -Times 1 -Exactly -ParameterFilter {
+            $Message.Success -and $Message.Token -eq $workerContext.Token
+        }
+        $lease = Enter-InstallationLock $operation.LockPath 50
+        $lease.Dispose()
+    }
+
     It 'refuses mutation after the approving parent instance dies' {
         $workerContext.ParentStarted = 'different process start'
         { Invoke-NativeWorkerLease $workerContext } | Should -Throw -ErrorId 'PMU.PlanStale'
