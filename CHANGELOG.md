@@ -10,6 +10,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.2.0] - 2026-10-27
+
+### Changed
+
 - Use native PowerShellGet staging and `Update-Module` for existing
   installations without Force or an install fallback, while retaining
   PSResourceGet discovery, exact target/source validation, consent and recovery.
@@ -21,10 +33,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   Gerber/NovaModuleTools; dotted labels are outside this provider's install
   capabilities. Historical qualification does not establish untested platform
   support.
-
-### Deprecated
-
-### Removed
 
 ### Fixed
 
@@ -51,8 +59,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   Ordinary resource folders are excluded, while numeric folders with missing
   manifests and manifest-bearing invalid layouts still fail validation. No
   installation is migrated or removed.
-
-### Security
 
 ## [0.1.0] - 2026-10-24
 
@@ -98,3 +104,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Pass the owned temporary dependency root between `Run Tests` workflow steps
   so NovaModuleTools is discoverable for CI and changelog validation, with
   ownership-validated cleanup even after a failed consumer step.
+
