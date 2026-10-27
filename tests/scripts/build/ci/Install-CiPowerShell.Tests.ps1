@@ -6,9 +6,18 @@ BeforeAll {
 
 Describe 'Get-CiPowerShellAssetName' -Tag 'BuildTooling' {
     It 'names the official archive for <RuntimeIdentifier>' -ForEach @(
-        @{ RuntimeIdentifier = 'win-x64'; Expected = 'PowerShell-7.4.21-win-x64.zip' }
-        @{ RuntimeIdentifier = 'linux-x64'; Expected = 'powershell-7.4.21-linux-x64.tar.gz' }
-        @{ RuntimeIdentifier = 'osx-arm64'; Expected = 'powershell-7.4.21-osx-arm64.tar.gz' }
+        @{
+            RuntimeIdentifier = 'win-x64'
+            Expected = 'PowerShell-7.4.21-win-x64.zip'
+        }
+        @{
+            RuntimeIdentifier = 'linux-x64'
+            Expected = 'powershell-7.4.21-linux-x64.tar.gz'
+        }
+        @{
+            RuntimeIdentifier = 'osx-arm64'
+            Expected = 'powershell-7.4.21-osx-arm64.tar.gz'
+        }
     ) {
         Get-CiPowerShellAssetName -Version '7.4.21' -RuntimeIdentifier $RuntimeIdentifier | Should -Be $Expected
     }
@@ -75,11 +84,19 @@ Describe 'Resolve-CiPowerShellVersionTag' -Tag 'BuildTooling' {
             $installation = @{
                 directory = $PSHOME
                 version = $PSVersionTable.PSVersion.ToString()
-                runtimeIdentifier = if ($IsWindows) { 'linux-x64' } else { 'win-x64' }
+                runtimeIdentifier = if ($IsWindows) {
+                    'linux-x64'
+                } else {
+                    'win-x64'
+                }
             }
             # The executable exists, but its requested runtime identifier is deliberately wrong.
-            if (-not $IsWindows) { $installation.runtimeIdentifier = 'linux-x64' }
-            if ($IsLinux) { $installation.runtimeIdentifier = 'osx-arm64' }
+            if (-not $IsWindows) {
+                $installation.runtimeIdentifier = 'linux-x64'
+            }
+            if ($IsLinux) {
+                $installation.runtimeIdentifier = 'osx-arm64'
+            }
             { Assert-CiInstalledPowerShell -Installation $installation } | Should -Throw
         }
     }

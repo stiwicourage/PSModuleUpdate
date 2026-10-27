@@ -11,7 +11,9 @@ Describe 'Resolve-RepositoryTransportRoot' -Tag 'PMUUriBridge' {
             $first.Home | Should -Not -Be $second.Home
             foreach ($probe in @($first, $second)) {
                 $expectedData = [Environment]::GetFolderPath('LocalApplicationData')
-                if ($IsLinux) { $expectedData = Join-Path $probe.Home '.local/share' }
+                if ($IsLinux) {
+                    $expectedData = Join-Path $probe.Home '.local/share'
+                }
                 $probe.LocalData | Should -Be $expectedData
                 $probe.Store | Should -Be (Join-Path $expectedData 'PSResourceGet/PSResourceRepository.xml')
                 $probe.Root | Should -Be (Join-Path $expectedData 'PSModuleUpdate/RepositoryTransport')
@@ -22,7 +24,9 @@ Describe 'Resolve-RepositoryTransportRoot' -Tag 'PMUUriBridge' {
             $first = Get-PMUNativeRegistryRootProbe (Join-Path $TestDrive 'first-home') $data
             $second = Get-PMUNativeRegistryRootProbe (Join-Path $TestDrive 'second-home') $data
             $expectedData = [Environment]::GetFolderPath('LocalApplicationData')
-            if ($IsLinux) { $expectedData = $data }
+            if ($IsLinux) {
+                $expectedData = $data
+            }
             $first.Home | Should -Not -Be $second.Home
             foreach ($probe in @($first, $second)) {
                 $probe.LocalData | Should -Be $expectedData

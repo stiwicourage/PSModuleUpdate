@@ -44,12 +44,12 @@ Describe 'CI workflow security and gate policy' -Tag 'BuildTooling', 'WorkflowPo
         $script:publish | Should -Match 'PSModulePath=.*>> \$env:GITHUB_ENV'
     }
 
-    It 'supports pull requests and pushes for develop and main plus reuse' {
+    It 'supports pull requests into develop and main, pushes outside main, plus reuse' {
         $script:ci | Should -Match '(?m)^\s+pull_request:'
         $script:ci | Should -Match '(?m)^\s+push:'
         $script:ci | Should -Match '(?m)^\s+workflow_call:'
-        $script:ci | Should -Match '(?s)pull_request:\s*\r?\n\s+branches:\s*\[develop, main\]'
-        $script:ci | Should -Match '(?s)push:\s*\r?\n\s+branches:\s*\[develop, main\]'
+        $script:ci | Should -Match '(?s)pull_request:\s*\r?\n\s+branches:\s*\r?\n\s+-\s*main\s*\r?\n\s+-\s*develop'
+        $script:ci | Should -Match '(?s)push:\s*\r?\n\s+branches-ignore:\s*\r?\n\s+-\s*main'
     }
 
     It 'defines an always-evaluated ci-gate that depends on every mandatory job' {

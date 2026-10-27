@@ -10,7 +10,9 @@ function Assert-CiDependencyOrigin {
     foreach ($module in Get-Module) {
         $owned = $module.ModuleBase.StartsWith($ModuleRoot + [IO.Path]::DirectorySeparatorChar)
         $builtin = $module.ModuleBase -eq $PSHOME -or $module.ModuleBase.StartsWith($PSHOME + [IO.Path]::DirectorySeparatorChar)
-        if (-not ($owned -or $builtin)) { throw "Dependency resolved outside isolation: $($module.Name)." }
+        if (-not ($owned -or $builtin)) {
+            throw "Dependency resolved outside isolation: $($module.Name)."
+        }
     }
 }
 

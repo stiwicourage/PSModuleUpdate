@@ -9,20 +9,36 @@ Describe 'PMU standalone target and exact repository binding' -Tag 'PMU', 'PMURe
         Initialize-PMUProviderMock
     }
     It 'updates an unloaded dependency-free installed target by <Selector> using <RepositoryChoice>' -ForEach @(
-        @{ Selector = 'Name'; RepositoryChoice = 'Public' }
-        @{ Selector = 'Uri'; RepositoryChoice = 'Public' }
-        @{ Selector = 'Name'; RepositoryChoice = 'Private' }
-        @{ Selector = 'Uri'; RepositoryChoice = 'Private' }
+        @{
+            Selector = 'Name'
+            RepositoryChoice = 'Public'
+        }
+        @{
+            Selector = 'Uri'
+            RepositoryChoice = 'Public'
+        }
+        @{
+            Selector = 'Name'
+            RepositoryChoice = 'Private'
+        }
+        @{
+            Selector = 'Uri'
+            RepositoryChoice = 'Private'
+        }
     ) {
         $credential = $null
-        if ($RepositoryChoice -eq 'Private') { $credential = [pscredential]::new('fixture-credential-user', [securestring]::new()) }
+        if ($RepositoryChoice -eq 'Private') {
+            $credential = [pscredential]::new('fixture-credential-user', [securestring]::new())
+        }
         $bundle = Invoke-PMURepositoryRoundTrip $repositoryFixture $RepositoryChoice $Selector $credential
         $bundle.Result.Outcome | Should -Be Installed
         $bundle.Plan.ModuleName | Should -Be $repositoryFixture.Name
         @($repositoryFixture.Module.RequiredModules).Count | Should -Be 0
         @(Get-Module -Name $repositoryFixture.Name).Count | Should -Be 0
         @($repositoryFixture.Calls.Repository | Select-Object -Unique) | Should -Be @($repositoryFixture.Repositories[$RepositoryChoice].Name)
-        foreach ($call in $repositoryFixture.Calls) { [object]::ReferenceEquals($call.Credential, $credential) | Should -BeTrue }
+        foreach ($call in $repositoryFixture.Calls) {
+            [object]::ReferenceEquals($call.Credential, $credential) | Should -BeTrue
+        }
         (ConvertTo-Json $bundle -Depth 12) | Should -Not -Match 'PSCredential|SecureString|fixture-credential-user'
         Should -Invoke Register-PSResourceRepository -Times 0
         Should -Invoke Unregister-PSResourceRepository -Times 0
@@ -38,8 +54,16 @@ Describe 'PMU standalone target and exact repository binding' -Tag 'PMU', 'PMURe
         $script:bindingFindCount = 0
         Mock Find-ProviderResource {
             $script:bindingFindCount++
-            if ($script:bindingFindCount -eq 3) { $script:repositoryFixture.Repositories.Public.Uri = [uri]'https://changed-before-save.invalid/v3/index.json' }
-            [pscustomobject]@{ Name = $Request.Name; Version = [version]'2.0.0'; Prerelease = 'preview.2'; AdditionalMetadata = @{ RequireLicenseAcceptance = 'false' }; Dependencies = @() }
+            if ($script:bindingFindCount -eq 3) {
+                $script:repositoryFixture.Repositories.Public.Uri = [uri]'https://changed-before-save.invalid/v3/index.json'
+            }
+            [pscustomobject]@{
+                Name = $Request.Name
+                Version = [version]'2.0.0'
+                Prerelease = 'preview.2'
+                AdditionalMetadata = @{ RequireLicenseAcceptance = 'false' }
+                Dependencies = @()
+            }
         }
         { Invoke-PMURepositoryRoundTrip $repositoryFixture Public Uri $null } | Should -Throw -ErrorId 'PMU.RepositoryChanged*'
         Should -Invoke Save-ProviderResource -Times 0

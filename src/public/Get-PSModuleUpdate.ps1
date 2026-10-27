@@ -36,7 +36,10 @@ function Get-PSModuleUpdate {
         [hashtable]$Policy = @{},
         [pscredential]$Credential
     )
-    $selection = @{ Name = $Repository; Uri = $RepositoryUri }
+    $selection = @{
+        Name = $Repository
+        Uri = $RepositoryUri
+    }
     $context = Get-PlanningContext $Module $selection $Policy $Credential
     Register-UpdatePlan (ConvertTo-UpdatePlan $context) $context ([bool]$Credential)
 }

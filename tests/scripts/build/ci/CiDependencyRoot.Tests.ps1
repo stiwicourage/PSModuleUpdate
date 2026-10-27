@@ -8,7 +8,10 @@ Describe 'Disposable CI dependency ownership' -Tag 'BuildTooling' {
         $path = Join-Path $TestDrive 'pmu-ci-modules-existing'
         New-Item -ItemType Directory -Path $path | Out-Null
         { New-CiDependencyRoot -Path $path } | Should -Throw '*already exists*'
-        { Remove-CiDependencyRoot -Owner @{ Path = $path; Token = 'missing' } } | Should -Throw
+        { Remove-CiDependencyRoot -Owner @{
+                Path = $path
+                Token = 'missing'
+            } } | Should -Throw
         Test-Path -LiteralPath $path | Should -BeTrue
     }
 

@@ -4,8 +4,12 @@ function Get-ActiveModuleVersion {
     $label = ''
     if ($Module.PrivateData -is [System.Collections.IDictionary]) {
         $privateData = $Module.PrivateData
-        if ($privateData['PSData']) { $label = "$($privateData['PSData']['Prerelease'])" }
+        if ($privateData['PSData']) {
+            $label = "$($privateData['PSData']['Prerelease'])"
+        }
     }
-    if ($label) { $full += "-$label" }
+    if ($label) {
+        $full += "-$label"
+    }
     ConvertTo-CompleteModuleVersion $full
 }

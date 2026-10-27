@@ -17,19 +17,32 @@ BeforeAll {
     }
 
     function Invoke-DependencyWorkflowChild {
-        param([string]$Command, [string]$ModuleRoot)
+        param(
+            [string]$Command,
+            [string]$ModuleRoot
+        )
+
         $location = $script:root.Replace("'", "''")
         $path = $ModuleRoot.Replace("'", "''")
         $preamble = "`$ErrorActionPreference = 'Stop'; Set-Location '$location'; `$env:CI_MODULE_ROOT = '$path';"
         $output = & (Get-Process -Id $PID).Path -NoLogo -NoProfile -Command ($preamble + $Command) 2>&1
-        return @{ ExitCode = $LASTEXITCODE; Output = ($output -join "`n") }
+        return @{
+            ExitCode = $LASTEXITCODE
+            Output = ($output -join "`n")
+        }
     }
 }
 
 Describe 'Run Tests dependency lifecycle' -Tag 'BuildTooling', 'RunTestsDependencies' {
     It 'exposes the saved root through a named install step with <LineEnding> line endings' -ForEach @(
-        @{ LineEnding = 'LF'; NewLine = "`n" }
-        @{ LineEnding = 'CRLF'; NewLine = "`r`n" }
+        @{
+            LineEnding = 'LF'
+            NewLine = "`n"
+        }
+        @{
+            LineEnding = 'CRLF'
+            NewLine = "`r`n"
+        }
     ) {
         $step = (Get-DependencyWorkflowStep 'Install required CI PowerShell modules') -replace '\r?\n', $NewLine
         $step | Should -Match '(?m)^        id: modules\r?$'
@@ -37,8 +50,14 @@ Describe 'Run Tests dependency lifecycle' -Tag 'BuildTooling', 'RunTestsDependen
     }
 
     It 'isolates dependencies before <Name> in a fresh process' -ForEach @(
-        @{ Name = 'Run NovaModuleTools CI test and coverage workflow'; Boundary = './scripts/build/ci/Invoke-NovaModuleToolsCI.ps1' }
-        @{ Name = 'Validate repository changelog with Test-KeepAChangelogFile'; Boundary = '$result = Test-KeepAChangelogFile' }
+        @{
+            Name = 'Run NovaModuleTools CI test and coverage workflow'
+            Boundary = './scripts/build/ci/Invoke-NovaModuleToolsCI.ps1'
+        }
+        @{
+            Name = 'Validate repository changelog with Test-KeepAChangelogFile'
+            Boundary = '$result = Test-KeepAChangelogFile'
+        }
     ) {
         $step = Get-DependencyWorkflowStep $Name
         $step | Should -Match 'CI_MODULE_ROOT: \$\{\{ steps\.modules\.outputs\.moduleRoot \}\}'
@@ -76,11 +95,23 @@ Describe 'Run Tests dependency lifecycle' -Tag 'BuildTooling', 'RunTestsDependen
     }
 
     It 'executes validated cleanup in a fresh process and refuses <Kind> ownership' -ForEach @(
-        @{ Kind = 'valid'; Tamper = $false; ExitCode = 0; Remains = $false }
-        @{ Kind = 'invalid'; Tamper = $true; ExitCode = 1; Remains = $true }
+        @{
+            Kind = 'valid'
+            Tamper = $false
+            ExitCode = 0
+            Remains = $false
+        }
+        @{
+            Kind = 'invalid'
+            Tamper = $true
+            ExitCode = 1
+            Remains = $true
+        }
     ) {
         $owner = New-CiDependencyRoot -Path (Join-Path $TestDrive "pmu-ci-modules-$([guid]::NewGuid().ToString('N'))")
-        if ($Tamper) { Set-Content -LiteralPath (Join-Path $owner.Path '.pmu-dependencies.json') -Value '{}' }
+        if ($Tamper) {
+            Set-Content -LiteralPath (Join-Path $owner.Path '.pmu-dependencies.json') -Value '{}'
+        }
         $command = Get-DependencyWorkflowCommand (Get-DependencyWorkflowStep 'Clean owned CI dependencies')
         $command | Should -Match 'Remove-CiDependencyRoot -Owner \(Get-CiDependencyOwner -Path \$env:CI_MODULE_ROOT\)'
         $result = Invoke-DependencyWorkflowChild -Command $command -ModuleRoot $owner.Path

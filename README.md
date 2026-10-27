@@ -12,9 +12,22 @@ on PMU or contain any PMU-specific code.
 
 PSModuleUpdate separates read-only discovery from an explicitly approved
 installation. It targets PowerShell 7.4+ and uses
-`Microsoft.PowerShell.PSResourceGet` 1.2.0 as its qualified provider baseline.
-It never persistently configures consumer repositories, stores credentials,
-elevates privileges, or reloads the updated module.
+`Microsoft.PowerShell.PSResourceGet` 1.2.0 for discovery and declares that exact
+version as a module dependency. The unreleased update implementation uses
+PowerShellGet 2.2.5 and PackageManagement 1.4.8.1 for staging and native
+`Update-Module`, without Force or an `Install-Module` fallback. It never
+persistently configures consumer repositories, stores credentials, elevates
+privileges, or reloads the updated module.
+
+**Native prerelease scope:** use provider-compatible labels such as `preview1`
+or `preview03`, matching the Gerber/NovaModuleTools release workflow.
+PowerShellGet 2.2.5 rejects dotted labels such as `preview.2`; those labels remain
+valid for PMU's semantic comparison but are outside this native update scope.
+No Force, beta provider or alternate installer is introduced to bypass that
+limitation. See
+[current qualification](docs/architecture/TESTING.md#native-update-transition)
+for successful Gallery evidence and the remaining gates. Historical G-4A3
+acceptance does not qualify this replacement implementation.
 
 Pass an installed module object, not just its name. The target need not be the
 caller or already loaded:
@@ -58,10 +71,19 @@ not silently create a copy in another scope or fall back to CurrentUser when
 AllUsers is not writable. Run in an appropriately authorized shell when system
 permissions are necessary; PMU never requests elevation.
 
+Installed-copy discovery ignores ordinary resource directories, including
+`en-US` and `resources`, beside numeric version directories. A legacy flat
+copy may coexist with a versioned installation without blocking discovery;
+PMU does not migrate or select that flat copy as a versioned installation.
+Numeric version directories and other directories containing the target
+module's manifest remain subject to manifest and layout validation.
+
 `IncludePrerelease` considers stable and prerelease releases together. Complete
 versions use semantic prerelease ordering: `preview.10` follows `preview.2`,
 and a stable release follows prereleases with the same numeric base.
 Optional policy fields are `ExpectedRepositoryUri` and `VersionRange`.
+Planning support does not imply that the current native provider can install
+every selected version; the native label restriction above still applies.
 
 ### Private repositories
 
@@ -100,21 +122,27 @@ a new plan after restarting the shell or changing installation/repository state.
 Repository selection is always caller-owned and source-bound. PMU never
 searches another feed just because it contains the same package name. PSGallery,
 public NuGet v3 repositories such as NuGet.org, and authenticated private
-NuGet v3 repositories use the same PSResourceGet integration. General .NET
+NuGet v3 repositories use the same PSResourceGet discovery integration.
+Native installation has separate source/protocol qualification requirements;
+successful discovery alone does not establish update support. General .NET
 NuGet packages are not installable PowerShell modules merely because they can
 be discovered or downloaded. Nexus is expected to work with compatible NuGet v3
 capabilities, but no live Nexus qualification is implied.
 
 ## Replacement, recovery, and restart
 
-Same-base transitions such as `2.0.0-preview.1` to `2.0.0-preview.2` and then
-`2.0.0` require staged replacement because those versions share a numeric
+Same-base transitions such as `2.0.0-preview1` to `2.0.0-preview2` and then
+`2.0.0` share a numeric
 installation directory. PMU validates the staged identity and GUID, preserves a
 verified backup outside the Modules tree, records recovery state, and verifies
 the installed file tree. Provider success alone is not proof of installation.
+Equivalent dotted-label installation is not part of the Gerber/Nova native
+update contract.
 
-A cooperating PMU process holds an exclusive filesystem lock throughout the
-operation. Interrupted replacements are checked on the next approved
+A cooperating PMU process holds an exclusive filesystem lock during mutation.
+The native worker acquires the same original installation lock through a
+validated handoff; recovery cannot proceed while that worker still owns it.
+Interrupted replacements are checked on the next approved
 installation attempt. Recoverable failures trigger best-effort rollback;
 unsafe or unsuccessful recovery stops further installation and preserves
 available evidence. This is not an atomic installation or a power-loss

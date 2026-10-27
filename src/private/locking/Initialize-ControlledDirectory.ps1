@@ -1,7 +1,10 @@
 function Initialize-ControlledDirectory {
     param([string]$Path)
     $safe = Assert-SafePath $Path
-    if ($IsWindows) { Initialize-WindowsControlledDirectory $safe; return }
+    if ($IsWindows) {
+        Initialize-WindowsControlledDirectory $safe
+        return
+    }
     $mode = [IO.UnixFileMode]::UserRead -bor [IO.UnixFileMode]::UserWrite -bor [IO.UnixFileMode]::UserExecute
     $null = [IO.Directory]::CreateDirectory($safe, $mode)
     Assert-UnixDirectoryOwner $safe

@@ -3,6 +3,7 @@ BeforeAll {
     . "$root/tests/TestHelpers/Import-PMUTestSource.ps1"
     . "$root/tests/TestHelpers/Initialize-PMUTestPackage.ps1"
     . "$root/tests/TestHelpers/Initialize-PMUInterruptedReplacement.ps1"
+    . "$root/tests/TestHelpers/Invoke-PMUNativeHandoffMock.ps1"
 }
 Describe 'Invoke-UpdateInstallation' -Tag 'PMU', 'PMULicense', 'PMUPermission', 'PMURecoverySafety' {
     BeforeEach {
@@ -13,12 +14,36 @@ Describe 'Invoke-UpdateInstallation' -Tag 'PMU', 'PMULicense', 'PMUPermission', 
         $script:old = Initialize-PMUTestPackage $modules '2.0.0-preview.1'
         $script:target = Initialize-PMUTestPackage (Join-Path $fixtureRoot 'package') '2.0.0-preview.2'
         $script:active = Get-Module -ListAvailable "$old/FixtureModule.psd1"
-        Mock Resolve-ModuleInstallationRoot { if ($Scope -eq 'CurrentUser') { $script:modules } else { $script:other } }
+        Mock Resolve-ModuleInstallationRoot { if ($Scope -eq 'CurrentUser') {
+                $script:modules
+            } else {
+                $script:other
+            } }
         Mock Resolve-PMUDataRoot { $script:data }
-        Mock Get-ProviderContext { [pscustomobject]@{ Name = 'Microsoft.PowerShell.PSResourceGet'; Version = [version]'1.2.0' } }
-        Mock Get-RepositorySnapshot { [pscustomobject]@{ Name = 'OwnedFeed'; Uri = 'https://example.invalid/feed'; ApiVersion = 'V3'; Trusted = $true } }
+        Mock Get-ProviderContext { [pscustomobject]@{
+                Name = 'Microsoft.PowerShell.PSResourceGet'
+                Version = [version]'1.2.0'
+            } }
+        Mock Get-RepositorySnapshot { [pscustomobject]@{
+                Name = 'OwnedFeed'
+                Uri = 'https://example.invalid/feed'
+                ApiVersion = 'V3'
+                Trusted = $true
+            } }
+        Mock Assert-NativeRepositoryBinding {
+            Assert-RepositoryBinding $Operation.Plan $Operation.RepositoryName
+        }
+        Mock Invoke-NativeHandoff {
+            Invoke-PMUNativeHandoffMock $Operation $AlreadyInstalled
+        }
         Mock Find-ProviderResource {
-            [pscustomobject]@{ Name = 'FixtureModule'; Version = [version]'2.0.0'; Prerelease = 'preview.2'; AdditionalMetadata = @{ RequireLicenseAcceptance = 'false' }; Dependencies = @() }
+            [pscustomobject]@{
+                Name = 'FixtureModule'
+                Version = [version]'2.0.0'
+                Prerelease = 'preview.2'
+                AdditionalMetadata = @{ RequireLicenseAcceptance = 'false' }
+                Dependencies = @()
+            }
         }
         Mock Save-ProviderResource {
             $parent = Join-Path $Operation.StageRoot 'FixtureModule'
@@ -46,7 +71,13 @@ Describe 'Invoke-UpdateInstallation' -Tag 'PMU', 'PMULicense', 'PMUPermission', 
     }
     It 'previews a licensed exact target without accepting a license or writing state' {
         Mock Find-ProviderResource {
-            [pscustomobject]@{ Name = 'FixtureModule'; Version = [version]'2.0.0'; Prerelease = 'preview.2'; AdditionalMetadata = @{ RequireLicenseAcceptance = 'true' }; Dependencies = @() }
+            [pscustomobject]@{
+                Name = 'FixtureModule'
+                Version = [version]'2.0.0'
+                Prerelease = 'preview.2'
+                AdditionalMetadata = @{ RequireLicenseAcceptance = 'true' }
+                Dependencies = @()
+            }
         }
         $licensed = Get-PSModuleUpdate -Module $active -Repository OwnedFeed -Policy @{ Channel = 'IncludePrerelease' }
         ($licensed | Install-PSModuleUpdate -WhatIf).Outcome | Should -Be 'WhatIf'
@@ -61,8 +92,9 @@ Describe 'Invoke-UpdateInstallation' -Tag 'PMU', 'PMULicense', 'PMUPermission', 
         try {
             { $plan | Install-PSModuleUpdate -Confirm:$false } | Should -Throw -ErrorId 'PMU.PermissionDenied*'
             Should -Invoke Save-ProviderResource -Times 0
+        } finally {
+            [IO.File]::SetUnixFileMode($parent, [IO.UnixFileMode]'UserRead,UserWrite,UserExecute')
         }
-        finally { [IO.File]::SetUnixFileMode($parent, [IO.UnixFileMode]'UserRead,UserWrite,UserExecute') }
     }
     It 'replaces only same-base identity, verifies and makes a second call a no-op' {
         $result = $plan | Install-PSModuleUpdate -Confirm:$false
@@ -93,7 +125,12 @@ Describe 'Invoke-UpdateInstallation' -Tag 'PMU', 'PMULicense', 'PMUPermission', 
         { $plan | Install-PSModuleUpdate -Confirm:$false } | Should -Throw -ErrorId 'PMU.InvalidPlan*'
     }
     It 'rejects a changed repository' {
-        Mock Get-RepositorySnapshot { [pscustomobject]@{ Name = 'OwnedFeed'; Uri = 'https://elsewhere.invalid/feed'; ApiVersion = 'V3'; Trusted = $true } }
+        Mock Get-RepositorySnapshot { [pscustomobject]@{
+                Name = 'OwnedFeed'
+                Uri = 'https://elsewhere.invalid/feed'
+                ApiVersion = 'V3'
+                Trusted = $true
+            } }
         { $plan | Install-PSModuleUpdate -Confirm:$false } | Should -Throw -ErrorId 'PMU.RepositoryChanged*'
     }
     It 'recovers through the public API with a missing target and a surviving older active module' {
@@ -112,7 +149,9 @@ Describe 'Invoke-UpdateInstallation' -Tag 'PMU', 'PMULicense', 'PMUPermission', 
         $survivor = Initialize-PMUTestPackage $other '1.0.0-stablefixture'
         $activeModule = Get-Module -ListAvailable "$survivor/FixtureModule.psd1"
         $null = Initialize-PMUInterruptedReplacement $plan
-        if ($Damage -eq 'partial') { $null = New-Item $old -ItemType Directory }
+        if ($Damage -eq 'partial') {
+            $null = New-Item $old -ItemType Directory
+        }
         $next = Get-PSModuleUpdate -Module $activeModule -Repository OwnedFeed -Policy @{ Channel = 'IncludePrerelease' }
         { $next | Install-PSModuleUpdate -Confirm:$false } | Should -Throw -ErrorId 'PMU.PlanStale*'
         (Get-ManifestIdentity "$old/FixtureModule.psd1").Version.FullVersion | Should -Be '2.0.0-preview.1'
@@ -155,7 +194,10 @@ Describe 'Invoke-UpdateInstallation' -Tag 'PMU', 'PMULicense', 'PMUPermission', 
         Test-Path $data | Should -BeFalse
     }
     It 'rejects an untrusted journal path without touching external evidence' {
-        $operation = ConvertTo-InstallationOperation $plan (Test-UpdatePlan $plan) @{ AcceptLicense = $true; TrustRepository = $true } $null
+        $operation = ConvertTo-InstallationOperation $plan (Test-UpdatePlan $plan) @{
+            AcceptLicense = $true
+            TrustRepository = $true
+        } $null
         Initialize-ControlledDirectory $operation.WorkRoot
         $journal = ConvertTo-RecoveryJournal $operation @()
         $journal.BackupPath = Join-Path $fixtureRoot 'unrelated'
@@ -166,7 +208,10 @@ Describe 'Invoke-UpdateInstallation' -Tag 'PMU', 'PMULicense', 'PMUPermission', 
     }
     It 'handles AllUsers permission failure without falling back to CurrentUser' {
         $null = Initialize-PMUTestPackage $other '2.0.0-preview.1'
-        $allUsers = Get-PSModuleUpdate -Module $active -Repository OwnedFeed -Policy @{ Scope = 'AllUsers'; Channel = 'IncludePrerelease' }
+        $allUsers = Get-PSModuleUpdate -Module $active -Repository OwnedFeed -Policy @{
+            Scope = 'AllUsers'
+            Channel = 'IncludePrerelease'
+        }
         Mock Install-ProviderResource { throw [UnauthorizedAccessException]::new('fixture denied') }
         { $allUsers | Install-PSModuleUpdate -Confirm:$false } | Should -Throw -ErrorId 'PMU.PermissionDenied*'
         (Get-ManifestIdentity "$old/FixtureModule.psd1").Version.FullVersion | Should -Be '2.0.0-preview.1'

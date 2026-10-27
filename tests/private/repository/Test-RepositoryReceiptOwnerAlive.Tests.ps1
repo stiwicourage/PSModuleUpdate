@@ -9,7 +9,24 @@ Describe 'Test-RepositoryReceiptOwnerAlive' -Tag 'PMUUriBridge' {
         }
     }
     It 'rejects a receipt process id outside the operating-system range' {
-        $receipt = [pscustomobject]@{ OwnerPid = '99999999999'; OwnerStartedUtcTicks = '1' }
+        $receipt = [pscustomobject]@{
+            OwnerPid = '99999999999'
+            OwnerStartedUtcTicks = '1'
+        }
         { Test-RepositoryReceiptOwnerAlive $receipt } | Should -Throw -ErrorId 'PMU.RepositoryRecoveryRequired'
+    }
+    It 'preserves safe platform-specific handling of legacy UTC receipts for <Owner> owners' -ForEach @(
+        @{ Owner = 'live'; OwnerId = $PID }
+        @{ Owner = 'missing'; OwnerId = [int]::MaxValue }
+    ) {
+        $receipt = [pscustomobject]@{
+            OwnerPid = "$OwnerId"
+            OwnerStartedUtcTicks = "$([Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().Ticks)"
+        }
+        if ($IsLinux) {
+            { Test-RepositoryReceiptOwnerAlive $receipt } | Should -Throw -ErrorId 'PMU.RepositoryRecoveryRequired'
+        } else {
+            Test-RepositoryReceiptOwnerAlive $receipt | Should -Be ($Owner -eq 'live')
+        }
     }
 }

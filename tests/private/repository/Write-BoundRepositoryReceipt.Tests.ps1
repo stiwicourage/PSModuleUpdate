@@ -5,7 +5,11 @@ Describe 'Write-BoundRepositoryReceipt' -Tag 'PMUUriBridge' {
             $receipt = ConvertTo-RepositoryReceipt (Initialize-PMUUriFixture $TestDrive).Source
             $path = Write-RepositoryReceipt $receipt $TestDrive
             $receipt.ApiVersion = 'Local'
-            Write-BoundRepositoryReceipt ([pscustomobject]@{ Receipt = $receipt; ReceiptPath = $path; Root = $TestDrive })
+            Write-BoundRepositoryReceipt ([pscustomobject]@{
+                    Receipt = $receipt
+                    ReceiptPath = $path
+                    Root = $TestDrive
+                })
             (Read-RepositoryReceipt $path $TestDrive).ApiVersion | Should -Be Local
             Test-Path "$path.binding" | Should -BeFalse
         }

@@ -15,8 +15,17 @@ Describe 'CI unit execution runtime witness' -Tag 'BuildTooling' {
             $script:savedContext = $env:PMU_CI_RUNTIME_CONTEXT
             $actual = Get-CiRuntimeRecord
             $context = @{
-                Expected = @{ OperatingSystem = $actual.Environment.OperatingSystem; Architecture = $actual.Environment.ProcessArchitecture; PowerShellVersion = $actual.Environment.PowerShellVersion; PowerShellChannel = 'stable'; Executable = $actual.Executable }
-                Identity = @{ phase = 'unit'; laneId = 'fixture' }
+                Expected = @{
+                    OperatingSystem = $actual.Environment.OperatingSystem
+                    Architecture = $actual.Environment.ProcessArchitecture
+                    PowerShellVersion = $actual.Environment.PowerShellVersion
+                    PowerShellChannel = 'stable'
+                    Executable = $actual.Executable
+                }
+                Identity = @{
+                    phase = 'unit'
+                    laneId = 'fixture'
+                }
             }
             $env:PMU_CI_TEST_RUNTIME_PATH = Join-Path $TestDrive 'witness.json'
             $env:PMU_CI_RUNTIME_CONTEXT = Join-Path $TestDrive 'context.json'

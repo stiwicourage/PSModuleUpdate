@@ -5,8 +5,14 @@ function Close-OwnedRepositoryTransport {
     try {
         $receipt = Read-RepositoryReceipt $Lease.ReceiptPath $root
         Assert-MatchingProperty $receipt $Lease.Receipt @('OperationId', 'RegistrationName', 'OwnerPid', 'OwnerStartedUtcTicks', 'UriHash') 'PMU.RepositoryRecoveryRequired'
-        if ($receipt.OwnerPid -ne $PID) { Write-PMUError 'PMU.RepositoryRecoveryRequired' 'A different operation owns this registration.' }
-        Clear-OwnedRepositoryReceipt ([pscustomobject]@{ Path = $Lease.ReceiptPath; Receipt = $receipt })
+        if ($receipt.OwnerPid -ne $PID) {
+            Write-PMUError 'PMU.RepositoryRecoveryRequired' 'A different operation owns this registration.'
+        }
+        Clear-OwnedRepositoryReceipt ([pscustomobject]@{
+                Path = $Lease.ReceiptPath
+                Receipt = $receipt
+            })
+    } finally {
+        $lock.Dispose()
     }
-    finally { $lock.Dispose() }
 }

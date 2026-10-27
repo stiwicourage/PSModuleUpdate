@@ -1,20 +1,34 @@
 function Get-PMUNativeRegistryRootProbe {
-    param([string]$HomeDirectory, [string]$DataDirectory)
+    param(
+        [string]$HomeDirectory,
+        [string]$DataDirectory
+    )
+
     $null = New-Item (Join-Path $HomeDirectory '.local/share') -ItemType Directory -Force
-    if ($DataDirectory) { $null = New-Item $DataDirectory -ItemType Directory -Force }
+    if ($DataDirectory) {
+        $null = New-Item $DataDirectory -ItemType Directory -Force
+    }
     $start = Get-PMUNativeRegistryProbeStartInfo $HomeDirectory $DataDirectory
     $start.RedirectStandardOutput = $true
     $start.RedirectStandardError = $true
     $result = Receive-PMUChildProcess ([Diagnostics.Process]::Start($start))
-    if ($result.ExitCode -ne 0) { throw 'Read-only native registry-root probe failed.' }
+    if ($result.ExitCode -ne 0) {
+        throw 'Read-only native registry-root probe failed.'
+    }
     $result.Output | ConvertFrom-Json
 }
 
 # These sibling helpers are owned by this probe, not language-enforced private functions.
 function Get-PMUNativeRegistryProbeStartInfo {
-    param([string]$HomeDirectory, [string]$DataDirectory)
+    param(
+        [string]$HomeDirectory,
+        [string]$DataDirectory
+    )
+
     $start = [Diagnostics.ProcessStartInfo]::new((Get-Process -Id $PID).Path)
-    foreach ($argument in @('-NoLogo', '-NoProfile', '-NonInteractive', '-Command')) { $start.ArgumentList.Add($argument) }
+    foreach ($argument in @('-NoLogo', '-NoProfile', '-NonInteractive', '-Command')) {
+        $start.ArgumentList.Add($argument)
+    }
     $start.Environment['PMU_PROBE_SOURCE'] = [IO.Path]::GetFullPath("$PSScriptRoot/../../src")
     $provider = Get-Module -ListAvailable Microsoft.PowerShell.PSResourceGet | Where-Object Version -EQ '1.2.0' | Select-Object -First 1
     $start.Environment['PMU_PROBE_PROVIDER'] = $provider.Path
@@ -22,7 +36,9 @@ function Get-PMUNativeRegistryProbeStartInfo {
     $start.ArgumentList.Add('. $env:PMU_PROBE_HELPER; Get-PMUNativeRegistryProbeState | ConvertTo-Json -Compress')
     $start.Environment['HOME'] = $HomeDirectory
     $null = $start.Environment.Remove('XDG_DATA_HOME')
-    if ($DataDirectory) { $start.Environment['XDG_DATA_HOME'] = $DataDirectory }
+    if ($DataDirectory) {
+        $start.Environment['XDG_DATA_HOME'] = $DataDirectory
+    }
     $start
 }
 

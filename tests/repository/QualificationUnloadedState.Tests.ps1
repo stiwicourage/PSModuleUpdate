@@ -8,13 +8,21 @@ Describe 'Unloaded qualification fixture identity' -Tag 'RepositoryQualification
         $module = New-Module -Name QualificationUnloadedFixture -ScriptBlock {}
         $script:session = [pscustomobject]@{ Options = @{ SeedVersion = '1.0.0' } }
         $script:plan = [pscustomobject]@{
-            ModuleGuid = $module.Guid; InstalledVersion = '1.0.0'; Scope = 'CurrentUser'
-            ActiveVersion = $null; ActivePath = $null; ActiveScope = $null
-            UpdateAvailable = $true; TargetVersion = '1.1.0'
+            ModuleGuid = $module.Guid
+            InstalledVersion = '1.0.0'
+            Scope = 'CurrentUser'
+            ActiveVersion = $null
+            ActivePath = $null
+            ActiveScope = $null
+            UpdateAvailable = $true
+            TargetVersion = '1.1.0'
         }
         $script:result = [pscustomobject]@{
-            SchemaVersion = 1; Outcome = 'Installed'; RestartRequired = $false
-            ModuleName = $module.Name; ActiveVersion = $null
+            SchemaVersion = 1
+            Outcome = 'Installed'
+            RestartRequired = $false
+            ModuleName = $module.Name
+            ActiveVersion = $null
         }
         Mock Get-Module {}
     }
@@ -26,11 +34,24 @@ Describe 'Unloaded qualification fixture identity' -Tag 'RepositoryQualification
     }
 
     It 'rejects a fabricated plan <Field> for an unloaded fixture' -TestCases @(
-        @{ Field = 'ActiveVersion'; Value = '1.0.0' }
-        @{ Field = 'ActivePath'; Value = '/not-a-loaded-module' }
-        @{ Field = 'ActiveScope'; Value = 'CurrentUser' }
+        @{
+            Field = 'ActiveVersion'
+            Value = '1.0.0'
+        }
+        @{
+            Field = 'ActivePath'
+            Value = '/not-a-loaded-module'
+        }
+        @{
+            Field = 'ActiveScope'
+            Value = 'CurrentUser'
+        }
     ) {
-        param($Field, $Value)
+        param(
+            $Field,
+            $Value
+        )
+
         $plan.$Field = $Value
         { Assert-QualificationPlanIdentity $session $module $plan } | Should -Throw '*unloaded*'
     }
@@ -40,22 +61,56 @@ Describe 'Unloaded qualification fixture identity' -Tag 'RepositoryQualification
     }
 
     It 'rejects a fabricated result <Field> for an unloaded fixture' -TestCases @(
-        @{ Field = 'ActiveVersion'; Value = '1.0.0' }
-        @{ Field = 'ActivePath'; Value = '/not-a-loaded-module' }
-        @{ Field = 'ActiveScope'; Value = 'CurrentUser' }
+        @{
+            Field = 'ActiveVersion'
+            Value = '1.0.0'
+        }
+        @{
+            Field = 'ActivePath'
+            Value = '/not-a-loaded-module'
+        }
+        @{
+            Field = 'ActiveScope'
+            Value = 'CurrentUser'
+        }
     ) {
-        param($Field, $Value)
+        param(
+            $Field,
+            $Value
+        )
+
         $result | Add-Member -NotePropertyName $Field -NotePropertyValue $Value -Force
         { Assert-QualificationResultStatus $result } | Should -Throw '*unloaded*'
     }
 
     It 'preserves the existing plan <Field> guard' -TestCases @(
-        @{ Field = 'ModuleGuid'; Value = [guid]'11111111-1111-1111-1111-111111111111'; Message = '*identity*' }
-        @{ Field = 'InstalledVersion'; Value = '0.9.0'; Message = '*installed version*' }
-        @{ Field = 'Scope'; Value = 'AllUsers'; Message = '*isolated scope*' }
-        @{ Field = 'UpdateAvailable'; Value = $false; Message = '*newer target*' }
+        @{
+            Field = 'ModuleGuid'
+            Value = [guid]'11111111-1111-1111-1111-111111111111'
+            Message = '*identity*'
+        }
+        @{
+            Field = 'InstalledVersion'
+            Value = '0.9.0'
+            Message = '*installed version*'
+        }
+        @{
+            Field = 'Scope'
+            Value = 'AllUsers'
+            Message = '*isolated scope*'
+        }
+        @{
+            Field = 'UpdateAvailable'
+            Value = $false
+            Message = '*newer target*'
+        }
     ) {
-        param($Field, $Value, $Message)
+        param(
+            $Field,
+            $Value,
+            $Message
+        )
+
         $plan.$Field = $Value
         { Assert-QualificationPlanIdentity $session $module $plan } | Should -Throw $Message
     }

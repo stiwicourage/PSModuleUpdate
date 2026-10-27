@@ -32,7 +32,11 @@ Describe 'Repository analyzer entrypoint' -Tag 'BuildTooling', 'AnalyzerPolicy' 
     }
 
     It 'fails the gate when the analyzer reports findings' {
-        Mock Invoke-ScriptAnalyzer { [pscustomobject]@{ RuleName = 'PSAvoidUsingInvokeExpression'; Message = 'Unsafe operation'; Severity = 'Warning' } }
+        Mock Invoke-ScriptAnalyzer { [pscustomobject]@{
+                RuleName = 'PSAvoidUsingInvokeExpression'
+                Message = 'Unsafe operation'
+                Severity = 'Warning'
+            } }
         { Invoke-RepositoryAnalysis -ProjectRoot $fixture } | Should -Throw '*ScriptAnalyzer*'
     }
 

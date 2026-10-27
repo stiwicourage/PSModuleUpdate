@@ -2,6 +2,10 @@
 
 Thank you for contributing. Keep changes small, reviewable, and easy to validate.
 
+The unreleased native-update transition is not covered by historical G-4A3
+acceptance. Read the [current qualification and native provider scope](docs/architecture/TESTING.md#native-update-transition)
+before changing its provider, lifecycle tests, or release requirements.
+
 G-4A3's [accepted closure](docs/architecture/G4A3_CLOSURE.md) is separate from future platform
 qualification. Review the proposed [cross-platform strategy](docs/architecture/CROSS_PLATFORM_TESTING.md)
 before implementing testing infrastructure; its matrices and roadmap are not
@@ -36,6 +40,11 @@ Before opening a pull request:
 
 ## Agentic Copilot workflow
 
+Follow the [CI parity and readiness gate](.github/instructions/repository-conventions.instructions.md#ci-parity-and-readiness)
+for every implementation or test change. A local pass is not a six-lane matrix
+pass; report the tested runtime/dependencies and any pending or failing hosted
+jobs for the exact revision.
+
 Recommended flow:
 
 1. **Design**
@@ -62,6 +71,14 @@ it does not install dependencies in CurrentUser or AllUsers. Existing
 PSResourceGet repository state is preserved by the provider fixtures, not by
 assuming that `HOME` or `PSModulePath` redirects registrations. Unexpected
 skips and incomplete XML/log/runtime evidence fail the lane.
+
+Dependency provisioning checks that PSGallery points to its official endpoint.
+If explicit native default registration is needed, it is removed afterward only
+if its source and trust remain unchanged; existing registrations are not changed.
+Each package download has at most three attempts with the same
+source, version selection and owned destination. Exhausted retries or a failed
+isolated import probe still fail provisioning and remove its owned dependency
+directory.
 
 The separate `Run Tests` workflow also saves dependencies to an owned temporary
 root. Each PowerShell consumer step uses the install step's `moduleRoot` output

@@ -45,6 +45,25 @@ If quality tooling is unavailable locally, continue with the normal repository v
 
 If the only files changed are `.md` files and none of those files contain embedded code blocks that are executed as part of a test or build step, executable validation may be skipped.
 
+## CI parity and readiness
+
+- Before changing code or tests, inspect the active `.github/workflows/` definitions and their owning `scripts/build/ci/` helpers. Identify the required OS, architecture, PowerShell versions, dependency provisioning and checks affected by the change; shared tests can break a platform even when production code did not change.
+- Run the focused checks and the required local quality loop. Local `run.ps1` success is not matrix qualification. Use the configured lane entrypoint on a matching host/runtime where available, preserving dependency isolation and failure semantics; never spoof runner identity or bypass host guards.
+- Review changed tests for portability, including path separators, casing, filesystem ordering and platform-specific commands. Build expected filesystem paths with `Join-Path` and compare the intended path contract, not a string containing the development host's separator. Preserve exact identity and side-effect assertions.
+- Before raising a dependency minimum, verify that CI's configured provider and version-selection rules can supply a compatible artifact. Record the actual imported version and path in the test process, not just the launcher's installed-module inventory; a locally built or installed sibling module does not prove availability on a clean runner. An unavailable dependency blocks consumer readiness until an upstream release or explicit CI artifact-delivery change is separately authorized. Do not lower the minimum, add fallback imports, publish packages or modify global module installations to hide the gap.
+- Report local and hosted evidence separately: tested revision/content state, OS/architecture, actual PowerShell and dependency versions, exact commands, test/coverage results and relevant run/job URLs. Mark unavailable hosts/runtimes, skipped required tests, interrupted commands and missing artifacts as unverified, not passed.
+- Inspect every required hosted job and the aggregate gate for the exact revision and run attempt before claiming CI or PR readiness. An earlier revision's green run, a green quality job or four passing lanes cannot qualify a failing six-lane matrix. Uncommitted fixes remain pending hosted verification; a local handoff must say so.
+- Trace failures to the first failing assertion or provisioning step before changing code. Keep regression assertions and thresholds intact; do not skip Windows tests, weaken comparisons, retry until green without diagnosis, or treat downstream missing-phase/artifact errors as the primary defect.
+
+For PSModuleUpdate, `.github/workflows/ci.yml` and `scripts/build/ci/CiLanes.json`
+define six required platform/runtime lanes. Reproduce applicable local lanes with
+the absolute selected PowerShell executable and
+`./scripts/build/ci/Invoke-PlatformLane.ps1 -LaneId <lane-id>` on a matching host.
+Preserve its owned dependency root, runtime/test evidence and cleanup; do not
+substitute ambient modules or direct Pester. Both Windows lanes need actual
+Windows execution; macOS/Linux results cannot establish their success. Check
+`ci-gate` and the separate test/coverage workflow for the tested revision.
+
 ## Documentation review
 
 - Review `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, and `RELEASE_NOTE.md` after any change that adds, removes, or alters public-facing behavior, commands, parameters, or documented workflows.

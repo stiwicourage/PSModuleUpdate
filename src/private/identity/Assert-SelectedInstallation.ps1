@@ -1,5 +1,9 @@
 function Assert-SelectedInstallation {
-    param([object[]]$Installations, [guid]$Guid)
+    param(
+        [object[]]$Installations,
+        [guid]$Guid
+    )
+
     if (-not $Installations.Count) {
         Write-PMUError 'PMU.UnsupportedInstallation' 'No existing installation was found in the requested scope.'
     }

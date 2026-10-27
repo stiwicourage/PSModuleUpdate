@@ -53,7 +53,10 @@ Describe 'Repository qualification safety' -Tag 'RepositoryQualification' {
     }
 
     It 'rejects credential-bearing result fields without serializing their values' {
-        Assert-QualificationPublicObject ([pscustomobject]@{ ModuleName = 'Example'; RepositoryUri = [uri]'https://example.test' }) | Should -BeNullOrEmpty
+        Assert-QualificationPublicObject ([pscustomobject]@{
+                ModuleName = 'Example'
+                RepositoryUri = [uri]'https://example.test'
+            }) | Should -BeNullOrEmpty
         $secret = [pscredential]::new('test-user', [securestring]::new())
         { Assert-QualificationPublicObject ([pscustomobject]@{ Nested = @{ Credential = $secret } }) } | Should -Throw '*credential*'
         { Assert-QualificationPublicObject ([pscustomobject]@{ RepositoryUri = [uri]'https://u:p@example.test' }) } | Should -Throw '*endpoint*'
@@ -78,7 +81,9 @@ Describe 'Repository qualification safety' -Tag 'RepositoryQualification' {
         try {
             $env:ADO_PAT = 'qualification-only-not-a-secret'
             Get-QualificationCredential 'Gallery' | Should -BeNullOrEmpty
-        } finally { $env:ADO_PAT = $previous }
+        } finally {
+            $env:ADO_PAT = $previous
+        }
     }
 
     It 'accepts only the exact explicitly approved built artifact while source work continues' {

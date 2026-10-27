@@ -1,12 +1,20 @@
 function Complete-VerifiedInstallation {
-    param([object]$Operation, [object[]]$Tree, [bool]$AlreadyInstalled)
+    param(
+        [object]$Operation,
+        [object[]]$Tree,
+        [bool]$AlreadyInstalled
+    )
+
     $outcome = 'AlreadyInstalled'
-    if ($AlreadyInstalled) { Assert-InstalledPackage $Operation $Tree }
-    else {
-        if (-not $Operation.Plan.UpdateAvailable) { Write-PMUError 'PMU.PlanStale' 'This plan does not authorize a newer target installation.' }
-        Initialize-Replacement $Operation $Tree
-        Invoke-ProviderInstallation $Operation $Tree
+    if (-not $AlreadyInstalled) {
+        if (-not $Operation.Plan.UpdateAvailable) {
+            Write-PMUError 'PMU.PlanStale' 'This plan does not authorize a newer target installation.'
+        }
         $outcome = 'Installed'
+    }
+    Assert-InstalledPackage $Operation $Tree
+    if ($Operation.Journal) {
+        Write-RecoveryJournalState $Operation.Journal 'Completed'
     }
     $result = ConvertTo-UpdateResult $Operation.Plan $outcome 'Verified'
     $result.RecoveryStatus = $Operation.RecoveryStatus

@@ -4,7 +4,10 @@ Describe 'Initialize-PlanningContext' -Tag 'PMUUriBridge' {
         It 'preserves independent target and policy inputs without finding packages' {
             $fixture = Initialize-PMURepositoryFixture $TestDrive
             Mock Get-ProviderContext { [pscustomobject]@{ Version = [version]'1.2.0' } }
-            Mock Get-SelectedRepository { [pscustomobject]@{ Name = $null; Uri = 'https://transport.invalid' } }
+            Mock Get-SelectedRepository { [pscustomobject]@{
+                    Name = $null
+                    Uri = 'https://transport.invalid'
+                } }
             $context = Initialize-PlanningContext $fixture.Module ([pscustomobject]@{ Uri = [uri]'https://transport.invalid' }) @{}
             $context.Module.Guid | Should -Be $fixture.Guid
             $context.Policy.Scope | Should -Be CurrentUser

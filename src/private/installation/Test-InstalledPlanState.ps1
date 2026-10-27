@@ -4,7 +4,9 @@ function Test-InstalledPlanState {
     $current = @(Get-InstalledModuleIdentityList $plan.ModuleName $plan.Scope)
     Assert-SelectedInstallation $current $plan.ModuleGuid
     $target = @($current | Where-Object FullVersion -CEQ $plan.TargetVersion)
-    if ($target.Count -eq 1) { return $true }
+    if ($target.Count -eq 1) {
+        return $true
+    }
     $original = @($plan.ObservedInstalledVersions | Where-Object Scope -EQ $plan.Scope)
     if ((ConvertTo-Json @($current) -Depth 5 -Compress) -cne (ConvertTo-Json @($original) -Depth 5 -Compress)) {
         Write-PMUError 'PMU.InstalledStateChanged' 'The selected-scope installation changed after planning.'

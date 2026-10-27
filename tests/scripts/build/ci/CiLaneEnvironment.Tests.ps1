@@ -35,12 +35,19 @@ Describe 'Test-CiLaneEnvironment' -Tag 'BuildTooling' {
     }
 
     It 'reports an operating system mismatch' {
-        $actual = Build-TestEnvironment @{ OperatingSystem = 'Windows'; RunnerOs = 'Windows' }
+        $actual = Build-TestEnvironment @{
+            OperatingSystem = 'Windows'
+            RunnerOs = 'Windows'
+        }
         Test-CiLaneEnvironment -Expected $script:expected -Actual $actual | Should -Contain "Operating system is 'Windows' but the lane expects 'Linux'."
     }
 
     It 'reports a runner architecture mismatch such as an Intel macOS runner' {
-        $actual = Build-TestEnvironment @{ OsArchitecture = 'Arm64'; ProcessArchitecture = 'Arm64'; RunnerArch = 'ARM64' }
+        $actual = Build-TestEnvironment @{
+            OsArchitecture = 'Arm64'
+            ProcessArchitecture = 'Arm64'
+            RunnerArch = 'ARM64'
+        }
         @(Test-CiLaneEnvironment -Expected $script:expected -Actual $actual) | Should -Contain "OS architecture is 'Arm64' but the lane expects 'X64'."
     }
 
@@ -56,13 +63,23 @@ Describe 'Test-CiLaneEnvironment' -Tag 'BuildTooling' {
 
     It 'reports a PowerShell version outside the requested numeric channel' {
         $actual = Build-TestEnvironment @{ PowerShellVersion = '7.6.8' }
-        $channelExpected = [pscustomobject]@{ OperatingSystem = 'Linux'; Architecture = 'X64'; PowerShellChannel = '7.4'; PowerShellVersion = '7.6.8' }
+        $channelExpected = [pscustomobject]@{
+            OperatingSystem = 'Linux'
+            Architecture = 'X64'
+            PowerShellChannel = '7.4'
+            PowerShellVersion = '7.6.8'
+        }
         @(Test-CiLaneEnvironment -Expected $channelExpected -Actual $actual) | Should -Contain "PowerShell version '7.6.8' is not in the requested '7.4' channel."
     }
 
     It 'accepts any version for the stable channel when it equals the provisioned version' {
         $actual = Build-TestEnvironment @{ PowerShellVersion = '7.6.8' }
-        $stableExpected = [pscustomobject]@{ OperatingSystem = 'Linux'; Architecture = 'X64'; PowerShellChannel = 'stable'; PowerShellVersion = '7.6.8' }
+        $stableExpected = [pscustomobject]@{
+            OperatingSystem = 'Linux'
+            Architecture = 'X64'
+            PowerShellChannel = 'stable'
+            PowerShellVersion = '7.6.8'
+        }
         @(Test-CiLaneEnvironment -Expected $stableExpected -Actual $actual).Count | Should -Be 0
     }
 
@@ -77,12 +94,19 @@ Describe 'Test-CiLaneEnvironment' -Tag 'BuildTooling' {
     }
 
     It 'does not require a runner environment outside GitHub Actions' {
-        $actual = Build-TestEnvironment @{ RunnerEnvironment = $null; RunnerOs = $null; RunnerArch = $null }
+        $actual = Build-TestEnvironment @{
+            RunnerEnvironment = $null
+            RunnerOs = $null
+            RunnerArch = $null
+        }
         @(Test-CiLaneEnvironment -Expected $script:expected -Actual $actual).Count | Should -Be 0
     }
 
     It 'reports a RUNNER_OS or RUNNER_ARCH value that contradicts the detected platform' {
-        $actual = Build-TestEnvironment @{ RunnerOs = 'macOS'; RunnerArch = 'ARM64' }
+        $actual = Build-TestEnvironment @{
+            RunnerOs = 'macOS'
+            RunnerArch = 'ARM64'
+        }
         $messages = @(Test-CiLaneEnvironment -Expected $script:expected -Actual $actual)
         $messages | Should -Contain "RUNNER_OS is 'macOS' but the lane expects 'Linux'."
         $messages | Should -Contain "RUNNER_ARCH is 'ARM64' but the lane expects 'X64'."

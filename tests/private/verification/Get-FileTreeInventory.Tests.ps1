@@ -24,4 +24,20 @@ Describe 'Get-FileTreeInventory' -Tag 'PMU' {
         $null = New-Item "$tree/empty" -ItemType Directory
         @(Get-FileTreeInventory $tree).Count | Should -Be ($before.Count + 1)
     }
+    It 'includes metadata-named directories and nested metadata files' {
+        $directory = Join-Path $tree 'PSGetModuleInfo.xml'
+        $null = New-Item $directory -ItemType Directory
+        [IO.File]::WriteAllText((Join-Path $directory 'PSGetModuleInfo.xml'), 'nested metadata')
+
+        $entries = @(Get-FileTreeInventory $tree)
+
+        $entries.Path | Should -Contain 'PSGetModuleInfo.xml/'
+        $entries.Path | Should -Contain 'PSGetModuleInfo.xml/PSGetModuleInfo.xml'
+    }
+    It 'validates root metadata before excluding it' {
+        $metadata = Join-Path $tree 'PSGetModuleInfo.xml'
+        $null = New-Item $metadata -ItemType SymbolicLink -Target (Join-Path $tree 'code.psm1')
+
+        { Get-FileTreeInventory $tree } | Should -Throw -ErrorId 'PMU.UnsupportedInstallation'
+    }
 }

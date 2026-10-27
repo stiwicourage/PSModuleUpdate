@@ -35,7 +35,7 @@ function Get-CiPlatformMatrix {
     $lane = @((Get-Content -LiteralPath $LanePath -Raw | ConvertFrom-Json).lanes)
     Assert-CiLaneDefinition -Lane $lane
 
-    return @{include = $lane} | ConvertTo-Json -Depth 4 -Compress
+    return @{include = $lane } | ConvertTo-Json -Depth 4 -Compress
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

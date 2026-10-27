@@ -5,7 +5,7 @@ function Test-CiPhaseSucceeded {
         [Parameter(Mandatory)][string]$Name
     )
 
-    $match = @($Phase | Where-Object {$_.Name -eq $Name})
+    $match = @($Phase | Where-Object { $_.Name -eq $Name })
     return $match.Count -eq 1 -and $match[0].ExitCode -eq 0
 }
 
@@ -34,7 +34,7 @@ function Get-CiLaneStatus {
         [Parameter(Mandatory)][hashtable]$Summary
     )
 
-    $phaseHealthy = @('build', 'unit', 'integration' | Where-Object {-not (Test-CiPhaseSucceeded -Phase $Phase -Name $_)}).Count -eq 0
+    $phaseHealthy = @('build', 'unit', 'integration' | Where-Object { -not (Test-CiPhaseSucceeded -Phase $Phase -Name $_) }).Count -eq 0
     $summaryHealthy = (Test-CiSummaryHealthy -Summary $Summary -Key 'unit') -and (Test-CiSummaryHealthy -Summary $Summary -Key 'integration')
     $check = @(
         @($Mismatch).Count -eq 0

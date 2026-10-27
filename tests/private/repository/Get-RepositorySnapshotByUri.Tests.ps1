@@ -7,7 +7,9 @@ Describe 'Get-RepositorySnapshotByUri' -Tag 'PMU', 'PMURepositoryUri' {
         BeforeEach {
             $script:uriRepositories = @((Get-PMURepositoryEntry).Values)
             Mock Get-PSResourceRepository {
-                if ($Name) { return $script:uriRepositories | Where-Object Name -EQ $Name }
+                if ($Name) {
+                    return $script:uriRepositories | Where-Object Name -EQ $Name
+                }
                 $script:uriRepositories
             }
             Mock Register-PSResourceRepository { throw 'Registration mutation is prohibited.' }
@@ -27,7 +29,12 @@ Describe 'Get-RepositorySnapshotByUri' -Tag 'PMU', 'PMURepositoryUri' {
             Should -Invoke Register-PSResourceRepository -Times 0
         }
         It 'rejects duplicate endpoint registrations rather than choosing by priority or trust' {
-            $script:uriRepositories += [pscustomobject]@{ Name = 'AliasFixture'; Uri = $uriRepositories[1].Uri; ApiVersion = 'V3'; Trusted = $true }
+            $script:uriRepositories += [pscustomobject]@{
+                Name = 'AliasFixture'
+                Uri = $uriRepositories[1].Uri
+                ApiVersion = 'V3'
+                Trusted = $true
+            }
             { Get-RepositorySnapshotByUri $uriRepositories[1].Uri } | Should -Throw -ErrorId 'PMU.RepositoryUnavailable'
         }
         It 'rejects a policy endpoint that conflicts with the selected URI' {

@@ -14,6 +14,9 @@ Describe 'ConvertTo-UpdatePolicy' -Tag 'PMU' {
         { ConvertTo-UpdatePolicy @{ Force = $true } } | Should -Throw -ErrorId 'PMU.InvalidRequest'
     }
     It 'accepts explicit AllUsers and prerelease policy' {
-        (ConvertTo-UpdatePolicy @{ Scope = 'AllUsers'; Channel = 'IncludePrerelease' }).Scope | Should -Be 'AllUsers'
+        (ConvertTo-UpdatePolicy @{
+            Scope = 'AllUsers'
+            Channel = 'IncludePrerelease'
+        }).Scope | Should -Be 'AllUsers'
     }
 }

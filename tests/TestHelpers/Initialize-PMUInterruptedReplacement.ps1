@@ -1,6 +1,9 @@
 function Initialize-PMUInterruptedReplacement {
     param([object]$Plan)
-    $operation = ConvertTo-InstallationOperation $Plan (Test-UpdatePlan $Plan) @{ AcceptLicense = $true; TrustRepository = $true } $null
+    $operation = ConvertTo-InstallationOperation $Plan (Test-UpdatePlan $Plan) @{
+        AcceptLicense = $true
+        TrustRepository = $true
+    } $null
     Initialize-ControlledDirectory $operation.WorkRoot
     $tree = @(Initialize-StagedPackage $operation)
     Initialize-Replacement $operation $tree
