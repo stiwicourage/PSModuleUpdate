@@ -5,5 +5,8 @@ function Assert-RepositoryReceipt {
         Write-PMUError 'PMU.RepositoryRecoveryRequired' 'Repository receipt schema is invalid.'
     }
     Assert-RepositoryReceiptIdentity $Receipt
-    Assert-MatchingProperty $Receipt ([pscustomobject]@{ Trusted = $false; Priority = 50 }) @('Trusted', 'Priority') 'PMU.RepositoryRecoveryRequired'
+    Assert-MatchingProperty $Receipt ([pscustomobject]@{
+            Trusted = $false
+            Priority = 50
+        }) @('Trusted', 'Priority') 'PMU.RepositoryRecoveryRequired'
 }

@@ -22,13 +22,27 @@ Describe 'Nova detailed output evidence' -Tag 'BuildTooling' {
     }
 
     It 'rejects truncated output rather than inventing missing identities from summary counts' {
-        $summary = @{ Total = 2; Passed = 2; Failed = 0; Skipped = 0 }
+        $summary = @{
+            Total = 2
+            Passed = 2
+            Failed = 0
+            Skipped = 0
+        }
         { Assert-CiTestDetail -Summary $summary -Detail @() -OperatingSystem 'macOS' } | Should -Throw
     }
 
     It 'rejects an unexpected skip even when counts reconcile' {
-        $summary = @{ Total = 1; Passed = 0; Failed = 0; Skipped = 1 }
-        $detail = @(@{ File = 'tests/example.Tests.ps1'; Name = 'unexpected'; Result = 'Skipped' })
+        $summary = @{
+            Total = 1
+            Passed = 0
+            Failed = 0
+            Skipped = 1
+        }
+        $detail = @(@{
+                File = 'tests/example.Tests.ps1'
+                Name = 'unexpected'
+                Result = 'Skipped'
+            })
         { Assert-CiTestDetail -Summary $summary -Detail $detail -OperatingSystem 'macOS' } | Should -Throw '*skip*'
     }
 }

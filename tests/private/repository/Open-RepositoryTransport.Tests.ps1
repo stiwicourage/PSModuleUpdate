@@ -23,7 +23,12 @@ Describe 'Open-RepositoryTransport' -Tag 'PMUUriBridge' {
             Should -Invoke Register-PSResourceRepository -Times 1 -ParameterFilter { -not $Force -and -not $Trusted -and -not $CredentialInfo }
         }
         It 'does not register or create state for an existing bound name' {
-            $source = [pscustomobject]@{ Name = 'OwnedFixture'; Uri = $uriFixture.Source.Uri; ApiVersion = 'V3'; Trusted = $false }
+            $source = [pscustomobject]@{
+                Name = 'OwnedFixture'
+                Uri = $uriFixture.Source.Uri
+                ApiVersion = 'V3'
+                Trusted = $false
+            }
             $lease = Open-RepositoryTransport $source
             $lease.Name | Should -Be 'OwnedFixture'
             Close-RepositoryTransport $lease $null
@@ -47,8 +52,11 @@ Describe 'Open-RepositoryTransport' -Tag 'PMUUriBridge' {
         }
         It 'bounds cooperative lock contention across different repository requests' {
             $lock = Enter-RepositoryRegistryLock $uriFixture.Root
-            try { { Open-RepositoryTransport $uriFixture.Source -TimeoutMilliseconds 50 } | Should -Throw -ErrorId 'PMU.LockTimeout*' }
-            finally { $lock.Dispose() }
+            try {
+                { Open-RepositoryTransport $uriFixture.Source -TimeoutMilliseconds 50 } | Should -Throw -ErrorId 'PMU.LockTimeout*'
+            } finally {
+                $lock.Dispose()
+            }
             Should -Invoke Register-PSResourceRepository -Times 0
         }
     }
@@ -73,7 +81,13 @@ Describe 'Open-RepositoryTransport' -Tag 'PMUUriBridge' {
         }
         It 'does not delete unrelated prefix names without a receipt' {
             $name = "pmu-uri-$([guid]::NewGuid().ToString('N'))"
-            $uriFixture.Entries[$name] = [pscustomobject]@{ Name = $name; Uri = [uri]'https://unrelated.invalid/v3/index.json'; ApiVersion = 'Unknown'; Trusted = $false; Priority = 50 }
+            $uriFixture.Entries[$name] = [pscustomobject]@{
+                Name = $name
+                Uri = [uri]'https://unrelated.invalid/v3/index.json'
+                ApiVersion = 'Unknown'
+                Trusted = $false
+                Priority = 50
+            }
             $lease = Open-RepositoryTransport $uriFixture.Source
             Close-RepositoryTransport $lease $null
             $uriFixture.Entries.ContainsKey($name) | Should -BeTrue
@@ -87,15 +101,31 @@ Describe 'Open-RepositoryTransport' -Tag 'PMUUriBridge' {
         It 'preserves the original safe failure and explicitly records a secondary cleanup failure' {
             $lease = Open-RepositoryTransport $uriFixture.Source
             Mock Unregister-PSResourceRepository { throw 'provider secret must not escape' }
-            try { Write-PMUError 'PMU.AuthenticationFailed' 'Authentication failed safely.' } catch { $failure = $_ }
+            try {
+                Write-PMUError 'PMU.AuthenticationFailed' 'Authentication failed safely.'
+            } catch {
+                $failure = $_
+            }
             $caught = { Close-RepositoryTransport $lease $failure } | Should -Throw -ErrorId 'PMU.AuthenticationFailed*' -PassThru
             $caught.Exception.Data['PMU.RepositoryCleanupFailed'] | Should -BeTrue
             "$caught" | Should -Not -Match 'provider secret'
         }
         It 'cleans a post-register provider exception using the durable receipt' {
             Mock Register-PSResourceRepository {
-                param($Name, $Uri, $ApiVersion = 'Unknown', $Priority)
-                $script:uriFixture.Entries[$Name] = [pscustomobject]@{ Name = $Name; Uri = [uri]$Uri; ApiVersion = "$ApiVersion"; Trusted = $false; Priority = $Priority }
+                param(
+                    $Name,
+                    $Uri,
+                    $ApiVersion = 'Unknown',
+                    $Priority
+                )
+
+                $script:uriFixture.Entries[$Name] = [pscustomobject]@{
+                    Name = $Name
+                    Uri = [uri]$Uri
+                    ApiVersion = "$ApiVersion"
+                    Trusted = $false
+                    Priority = $Priority
+                }
                 throw 'provider secret must not escape'
             }
             { Open-RepositoryTransport $uriFixture.Source } | Should -Throw -ErrorId 'PMU.RepositoryUnavailable*'

@@ -33,9 +33,15 @@ function Install-PSModuleUpdate {
         [Parameter(ParameterSetName = 'ByUpdatePlan')][switch]$TrustRepository
     )
     process {
-        $operation = Initialize-InstallationRequest $Update $Credential @{ AcceptLicense = [bool]$AcceptLicense; TrustRepository = [bool]$TrustRepository }
+        $operation = Initialize-InstallationRequest $Update $Credential @{
+            AcceptLicense = [bool]$AcceptLicense
+            TrustRepository = [bool]$TrustRepository
+        }
         $target = "$($Update.ModuleName) $($Update.TargetVersion) from $($Update.RepositoryName ?? $Update.RepositoryUri) into $($Update.Scope)"
-        if ($PSCmdlet.ShouldProcess($target, 'Install exact module update')) { Invoke-UpdateInstallation $operation }
-        else { ConvertTo-DeclinedUpdateResult $Update }
+        if ($PSCmdlet.ShouldProcess($target, 'Install exact module update')) {
+            Invoke-UpdateInstallation $operation
+        } else {
+            ConvertTo-DeclinedUpdateResult $Update
+        }
     }
 }

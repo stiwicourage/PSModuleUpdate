@@ -5,13 +5,19 @@ Describe 'Clear-OwnedRepositoryReceipt' -Tag 'PMUUriBridge' {
             $receipt = ConvertTo-RepositoryReceipt (Initialize-PMUUriFixture $TestDrive).Source
             $path = Write-RepositoryReceipt $receipt $TestDrive
             Mock Get-RepositoryRegistration { }
-            Clear-OwnedRepositoryReceipt ([pscustomobject]@{ Path = $path; Receipt = $receipt })
+            Clear-OwnedRepositoryReceipt ([pscustomobject]@{
+                    Path = $path
+                    Receipt = $receipt
+                })
             Test-Path $path | Should -BeFalse
         }
     }
     It 'refuses to clear an ambiguous owned registration' {
         $receipt = ConvertTo-RepositoryReceipt (Initialize-PMUUriFixture $TestDrive).Source
         Mock Get-RepositoryRegistration { @([pscustomobject]@{ Name = 'a' }, [pscustomobject]@{ Name = 'b' }) }
-        { Clear-OwnedRepositoryReceipt ([pscustomobject]@{ Path = "$TestDrive/x.json"; Receipt = $receipt }) } | Should -Throw -ErrorId 'PMU.RepositoryRecoveryRequired'
+        { Clear-OwnedRepositoryReceipt ([pscustomobject]@{
+                    Path = "$TestDrive/x.json"
+                    Receipt = $receipt
+                }) } | Should -Throw -ErrorId 'PMU.RepositoryRecoveryRequired'
     }
 }

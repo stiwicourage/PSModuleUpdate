@@ -6,11 +6,20 @@ function Initialize-QualificationSession {
     Import-Module $Options.ModulePath -ErrorAction Stop
     Assert-QualificationJournalRoot "$root/home"
     [pscustomobject]@{
-        Options = $Options; Root = $root; Destination = $destination
-        Credential = (Get-QualificationCredential $Options.Scenario); RepositoryName = $null
+        Options = $Options
+        Root = $root
+        Destination = $destination
+        Credential = (Get-QualificationCredential $Options.Scenario)
+        RepositoryName = $null
         RepositoryStore = (Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'PSResourceGet/PSResourceRepository.xml')
-        Before = @(Get-QualificationRepositoryState); RegistrationOwned = $false
-        Evidence = [ordered]@{ Scenario = $Options.Scenario; Outcome = 'Failed'; Cleanup = 'NotRun'; Phase = 'Initialization' }
+        Before = @(Get-QualificationRepositoryState)
+        RegistrationOwned = $false
+        Evidence = [ordered]@{
+            Scenario = $Options.Scenario
+            Outcome = 'Failed'
+            Cleanup = 'NotRun'
+            Phase = 'Initialization'
+        }
     }
 }
 
@@ -23,7 +32,9 @@ function Assert-QualificationJournalRoot {
 function Get-QualificationCredential {
     param([string]$Scenario)
     try {
-        if ($Scenario -eq 'Private') { Get-QualificationPrivateCredential }
+        if ($Scenario -eq 'Private') {
+            Get-QualificationPrivateCredential
+        }
     } finally {
         Remove-Item Env:ADO_PAT, Env:PMU_QUALIFICATION_PASSWORD, Env:PMU_QUALIFICATION_USERNAME -ErrorAction SilentlyContinue
     }
@@ -49,7 +60,9 @@ function Get-QualificationPrivateCredential {
 function ConvertTo-QualificationSecret {
     param([string]$Value)
     $secure = [securestring]::new()
-    foreach ($character in $Value.ToCharArray()) { $secure.AppendChar($character) }
+    foreach ($character in $Value.ToCharArray()) {
+        $secure.AppendChar($character)
+    }
     $secure.MakeReadOnly()
     $secure
 }
@@ -76,19 +89,32 @@ function Complete-QualificationSession {
 }
 
 function Get-QualificationProviderParameter {
-    param([object]$Session, [string]$Name, [string]$Version)
+    param(
+        [object]$Session,
+        [string]$Name,
+        [string]$Version
+    )
+
     $parameters = @{
-        Name = $Name; Repository = $Session.RepositoryName; Version = $Version
-        ErrorAction = 'Stop'; WarningAction = 'SilentlyContinue'; Verbose = $false; Debug = $false
+        Name = $Name
+        Repository = $Session.RepositoryName
+        Version = $Version
+        ErrorAction = 'Stop'
+        WarningAction = 'SilentlyContinue'
+        Verbose = $false
+        Debug = $false
     }
-    if ($Session.Credential) { $parameters.Credential = $Session.Credential }
+    if ($Session.Credential) {
+        $parameters.Credential = $Session.Credential
+    }
     $parameters
 }
 
 function Get-QualificationPolicy {
     param([object]$Session)
     @{
-        Channel = 'Stable'; Scope = 'CurrentUser'
+        Channel = 'Stable'
+        Scope = 'CurrentUser'
         ExpectedRepositoryUri = [uri]$Session.Options.RepositoryUri
         VersionRange = "[$($Session.Options.TargetVersion)]"
     }

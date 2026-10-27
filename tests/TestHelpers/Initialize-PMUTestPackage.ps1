@@ -1,5 +1,11 @@
 function Initialize-PMUTestPackage {
-    param([string]$Root, [string]$Version, [guid]$Guid = 'a1111111-1111-1111-1111-111111111111', [string]$Name = 'FixtureModule')
+    param(
+        [string]$Root,
+        [string]$Version,
+        [guid]$Guid = 'a1111111-1111-1111-1111-111111111111',
+        [string]$Name = 'FixtureModule'
+    )
+
     $parts = @($Version -split '-', 2) + @('')
     $directory = Join-Path $Root "$Name/$($parts[0])"
     $null = New-Item $directory -ItemType Directory -Force

@@ -1,6 +1,12 @@
 function Assert-ManifestRootModule {
-    param([hashtable]$Data, [string]$ManifestPath)
-    if (-not $Data['RootModule']) { return }
+    param(
+        [hashtable]$Data,
+        [string]$ManifestPath
+    )
+
+    if (-not $Data['RootModule']) {
+        return
+    }
     $root = Split-Path -Parent $ManifestPath
     $path = Assert-SafePath (Join-Path $root $Data['RootModule'])
     $relative = [IO.Path]::GetRelativePath($root, $path)

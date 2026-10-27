@@ -3,19 +3,50 @@ BeforeAll {
     . (Join-Path $root 'scripts/build/ci/CiLaneManifest.ps1')
 
     function Build-PhaseList {
-        param([int]$Build = 0, [int]$Unit = 0, [int]$Integration = 0)
+        param(
+            [int]$Build = 0,
+            [int]$Unit = 0,
+            [int]$Integration = 0
+        )
+
         @(
-            [pscustomobject]@{ Name = 'build'; ExitCode = $Build }
-            [pscustomobject]@{ Name = 'unit'; ExitCode = $Unit }
-            [pscustomobject]@{ Name = 'integration'; ExitCode = $Integration }
+            [pscustomobject]@{
+                Name = 'build'
+                ExitCode = $Build
+            }
+            [pscustomobject]@{
+                Name = 'unit'
+                ExitCode = $Unit
+            }
+            [pscustomobject]@{
+                Name = 'integration'
+                ExitCode = $Integration
+            }
         )
     }
 
     function Build-SummaryMap {
-        param([int]$UnitTotal = 10, [int]$UnitFailed = 0, [int]$IntegrationFailed = 0)
+        param(
+            [int]$UnitTotal = 10,
+            [int]$UnitFailed = 0,
+            [int]$IntegrationFailed = 0
+        )
+
         @{
-            unit = [pscustomobject]@{ Total = $UnitTotal; Passed = $UnitTotal - $UnitFailed; Failed = $UnitFailed; Skipped = 0; SkippedName = @() }
-            integration = [pscustomobject]@{ Total = 2; Passed = 2 - $IntegrationFailed; Failed = $IntegrationFailed; Skipped = 0; SkippedName = @() }
+            unit = [pscustomobject]@{
+                Total = $UnitTotal
+                Passed = $UnitTotal - $UnitFailed
+                Failed = $UnitFailed
+                Skipped = 0
+                SkippedName = @()
+            }
+            integration = [pscustomobject]@{
+                Total = 2
+                Passed = 2 - $IntegrationFailed
+                Failed = $IntegrationFailed
+                Skipped = 0
+                SkippedName = @()
+            }
         }
     }
 }
@@ -66,7 +97,10 @@ Describe 'Get-CiLaneStatus' -Tag 'BuildTooling' {
 
 Describe 'Build-CiLaneManifest' -Tag 'BuildTooling' {
     It 'records identity, status, phases, test counts and modules for the gate to verify' {
-        $environment = [pscustomobject]@{ OperatingSystem = 'Linux'; PowerShellVersion = '7.4.21' }
+        $environment = [pscustomobject]@{
+            OperatingSystem = 'Linux'
+            PowerShellVersion = '7.4.21'
+        }
         $manifest = Build-CiLaneManifest -LaneId 'linux-x64-ps74' -CommitSha 'abc123' -Environment $environment -Mismatch @() `
             -Phase (Build-PhaseList) -Summary (Build-SummaryMap) -Module @{ Pester = '5.7.1' }
 

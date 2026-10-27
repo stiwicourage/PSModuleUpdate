@@ -29,14 +29,20 @@ $ErrorActionPreference = 'Stop'
 Assert-QualificationAuthorization $EnableLive $ProviderStoreApproved
 
 function Invoke-RepositoryQualification {
-    param([hashtable]$Options, [pscredential]$Credential)
+    param(
+        [hashtable]$Options,
+        [pscredential]$Credential
+    )
+
     Initialize-QualificationLaunchOption $Options
     $temporaryRoot = Get-QualificationTemporaryRoot
     try {
         New-Item -Path "$temporaryRoot/home" -ItemType Directory | Out-Null
         Invoke-QualificationChild $Options $temporaryRoot $Credential
     } finally {
-        if (Test-Path -LiteralPath $temporaryRoot) { Remove-Item -LiteralPath $temporaryRoot -Recurse -Force -ErrorAction Stop }
+        if (Test-Path -LiteralPath $temporaryRoot) {
+            Remove-Item -LiteralPath $temporaryRoot -Recurse -Force -ErrorAction Stop
+        }
     }
 }
 

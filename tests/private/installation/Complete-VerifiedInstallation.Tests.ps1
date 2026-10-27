@@ -21,4 +21,18 @@ Describe 'Complete-VerifiedInstallation' -Tag 'PMU' {
         Should -Invoke Initialize-Replacement -Times 0
         Should -Invoke Invoke-ProviderInstallation -Times 0
     }
+    It 'finalizes independently verified worker output without running another provider writer' -Tag 'PMUNativeHandoff' {
+        $operation = Initialize-PMURecoveryFixture $TestDrive
+        $script:verifiedRoot = $operation.Plan.DestinationRoot
+        Mock Resolve-ModuleInstallationRoot { $script:verifiedRoot }
+        Invoke-PMUFixtureInstallation $operation
+        Write-RecoveryJournalState $operation.Journal 'Verification'
+        Mock Initialize-Replacement { throw 'The worker transaction already exists.' }
+        Mock Invoke-ProviderInstallation { throw 'The parent must not install again.' }
+        $tree = @($operation.Journal.StagedTree)
+        $result = Complete-VerifiedInstallation $operation $tree $false
+        $result.Outcome | Should -BeExactly 'Installed'
+        (Read-RecoveryJournal $operation).State | Should -BeExactly 'Completed'
+        Should -Invoke Invoke-ProviderInstallation -Times 0
+    }
 }

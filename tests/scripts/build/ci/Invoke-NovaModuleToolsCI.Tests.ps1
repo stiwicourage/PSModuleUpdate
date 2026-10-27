@@ -4,12 +4,21 @@ BeforeAll {
     $script:runnerSource = Join-Path $root 'scripts/build/ci/Invoke-NovaModuleToolsCI.ps1'
 
     function Initialize-CiCoverageFixture {
-        param([string]$Source, [string]$Root)
+        param(
+            [string]$Source,
+            [string]$Root
+        )
+
         $scripts = Join-Path $Root 'scripts/build/ci'
         $artifacts = Join-Path $Root 'artifacts'
         New-Item -ItemType Directory -Path @($scripts, $artifacts) -Force | Out-Null
         $runner = Copy-Item -LiteralPath $Source -Destination $scripts -PassThru
-        return @{ ProjectRoot = $Root; ProjectName = 'CoverageFixture'; OutputModuleDir = 'unused'; Runner = $runner.FullName }
+        return @{
+            ProjectRoot = $Root
+            ProjectName = 'CoverageFixture'
+            OutputModuleDir = 'unused'
+            Runner = $runner.FullName
+        }
     }
 }
 
@@ -26,7 +35,11 @@ Describe 'CI unit coverage production' -Tag 'BuildTooling', 'CiCoverage' {
         }
         Set-Location -LiteralPath $script:fixture.ProjectRoot
         Mock Get-NovaProjectInfo {
-            [pscustomobject]@{ ProjectRoot = (Get-Location).Path; ProjectName = 'CoverageFixture'; OutputModuleDir = 'unused' }
+            [pscustomobject]@{
+                ProjectRoot = (Get-Location).Path
+                ProjectName = 'CoverageFixture'
+                OutputModuleDir = 'unused'
+            }
         }
     }
 

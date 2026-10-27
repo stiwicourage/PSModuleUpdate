@@ -9,7 +9,10 @@ Describe 'Test-RestartRequired' -Tag 'PMU' {
     }
     It 'requires restart when loaded files were replaced even with unchanged version text' {
         $operation = Initialize-PMUTestOperation $TestDrive
-        $script:loadedFixture = [pscustomobject]@{ ModuleBase = $operation.Plan.TargetInstalledPath; Guid = $operation.Plan.ModuleGuid }
+        $script:loadedFixture = [pscustomobject]@{
+            ModuleBase = $operation.Plan.TargetInstalledPath
+            Guid = $operation.Plan.ModuleGuid
+        }
         Mock Get-Module { $script:loadedFixture }
         $operation.Plan.ActiveVersion = $operation.Plan.TargetVersion
         Test-RestartRequired $operation.Plan 'Installed' | Should -BeTrue

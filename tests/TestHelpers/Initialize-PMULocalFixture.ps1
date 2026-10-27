@@ -2,13 +2,18 @@ function Initialize-PMULocalFixture {
     param([string]$Root)
     $expectedRoot = [IO.Path]::GetFullPath((Join-Path $Root 'home/.local/share/powershell/Modules'))
     $actualRoot = [IO.Path]::GetFullPath((Get-PMUFixtureProviderRoot))
-    if ($actualRoot -cne $expectedRoot) { throw 'Provider destination is not the isolated child HOME. No installation is permitted.' }
+    if ($actualRoot -cne $expectedRoot) {
+        throw 'Provider destination is not the isolated child HOME. No installation is permitted.'
+    }
     $fixture = [pscustomobject]@{
-        Root = $Root; Feed = Join-Path $Root 'feed'; Name = "PmuOffline$([guid]::NewGuid().ToString('N'))"
-        Guid = [guid]::NewGuid(); Repository = "PmuOwned$([guid]::NewGuid().ToString('N'))"; Module = $null
+        Root = $Root
+        Feed = Join-Path $Root 'feed'
+        Name = "PmuOffline$([guid]::NewGuid().ToString('N'))"
+        Guid = [guid]::NewGuid()
+        Repository = "PmuOwned$([guid]::NewGuid().ToString('N'))"
+        Module = $null
     }
     $null = New-Item $fixture.Feed -ItemType Directory
-    $initial = Initialize-PMUTestPackage $actualRoot '2.0.0-preview.1' $fixture.Guid $fixture.Name
-    $fixture.Module = Get-Module -ListAvailable (Join-Path $initial "$($fixture.Name).psd1")
+    Initialize-PMUNativeLocalInstallation $fixture $actualRoot
     $fixture
 }

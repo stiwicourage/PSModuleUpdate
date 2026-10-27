@@ -7,8 +7,12 @@ function Get-PMUTestSourcePath {
     $visited = [Collections.Generic.HashSet[string]]::new()
     while ($pending.Count) {
         $path = $pending.Dequeue()
-        if (-not $visited.Add($path)) { continue }
-        foreach ($dependency in Get-PMUTestCommandReference $path $catalog) { $pending.Enqueue($dependency) }
+        if (-not $visited.Add($path)) {
+            continue
+        }
+        foreach ($dependency in Get-PMUTestCommandReference $path $catalog) {
+            $pending.Enqueue($dependency)
+        }
         $path
     }
 }

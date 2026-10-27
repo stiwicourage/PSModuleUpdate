@@ -4,7 +4,10 @@ BeforeAll {
 }
 Describe 'Install-PSModuleUpdate' -Tag 'PMU' {
     It 'rejects manufactured plans before mutation' {
-        $plan = [pscustomobject]@{ PSTypeName = 'PSModuleUpdate.UpdatePlan'; SchemaVersion = 1 }
+        $plan = [pscustomobject]@{
+            PSTypeName = 'PSModuleUpdate.UpdatePlan'
+            SchemaVersion = 1
+        }
         { Install-PSModuleUpdate -Update $plan -Confirm:$false } | Should -Throw -ErrorId 'PMU.InvalidPlan*'
     }
     It 'exposes only the exact mutation API and native ShouldProcess' {

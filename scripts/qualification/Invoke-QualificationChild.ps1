@@ -23,17 +23,27 @@ function Invoke-QualificationSession {
         Invoke-QualificationScenario $Session
     } catch {
         Write-QualificationFailureEvidence $Session $_
-    } finally { Complete-QualificationSession $Session }
+    } finally {
+        Complete-QualificationSession $Session
+    }
 }
 
 function Write-QualificationFailureEvidence {
-    param([object]$Session, [System.Management.Automation.ErrorRecord]$Failure)
+    param(
+        [object]$Session,
+        [System.Management.Automation.ErrorRecord]$Failure
+    )
+
     $Session.Evidence.Failure = 'Operation failed; raw authenticated diagnostics withheld.'
     $Session.Evidence.ErrorType = $Failure.Exception.GetType().Name
     $Session.Evidence.FailureLocation = "$([IO.Path]::GetFileName($Failure.InvocationInfo.ScriptName)):$($Failure.InvocationInfo.ScriptLineNumber)"
     $parameter = $Failure.Exception.PSObject.Properties['ParameterName']
-    if ($parameter) { $Session.Evidence.FailureParameter = $parameter.Value }
-    if ($Failure.FullyQualifiedErrorId -match 'PMU\.[A-Za-z]+') { $Session.Evidence.ErrorId = $Matches[0] }
+    if ($parameter) {
+        $Session.Evidence.FailureParameter = $parameter.Value
+    }
+    if ($Failure.FullyQualifiedErrorId -match 'PMU\.[A-Za-z]+') {
+        $Session.Evidence.ErrorId = $Matches[0]
+    }
 }
 
 Invoke-QualificationChild

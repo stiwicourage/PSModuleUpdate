@@ -26,13 +26,20 @@ An installed target need not be the caller, be loaded, declare PMU in
 `RequiredModules`, or contain PMU-specific code. Consumer-specific discovery,
 configuration, scheduling, and UI remain consumer responsibilities.
 
-## D-002 — Standard provider foundation (DECIDED)
+## D-002 — Standard provider foundation (native transition; QUALIFICATION GAP)
 
-PMU uses `Microsoft.PowerShell.PSResourceGet` rather than implementing feed
-transport, package resolution, or Azure authentication. Version 1.2.0 is the
-qualified behavioral baseline. Compatible later stable 1.x versions require
-explicit matrix evidence; PMU never silently switches provider versions or
-falls back to PowerShellGet.
+The original G-4A3 implementation used PSResourceGet 1.2.0 for discovery and
+mutation. The approved unreleased direction retains that discovery provider
+but uses native PowerShellGet `Update-Module`, with NovaModuleTools' established
+Force-free behavior as the reference. PowerShellGet 2.2.5 and PackageManagement
+1.4.8.1 are the current native implementation baseline.
+
+PMU must not add an `Install-Module` production fallback, Force, custom NuGet
+transport, or a silently substituted provider. Exact target/source, scope,
+consent, verification and recovery remain requirements. The transition is not
+qualified merely because the original PSResourceGet implementation was accepted.
+PowerShellGet's dotted-prerelease limitation is explicit and outside the
+Gerber/Nova update scope; see D-008.
 
 ## D-003 — Two-command public surface (DECIDED)
 
@@ -105,22 +112,31 @@ one exact target; later publication does not change it.
 Four-component PowerShell versions are preserved and compared without blindly
 casting them to `SemanticVersion`. Unsupported forms fail explicitly.
 
-## D-008 — Same-base progression through Strategy C (DECIDED; supersedes G-4A2)
+## D-008 — Same-base progression (native-compatible scope DECIDED)
 
 Normal release progression must support:
 
 ```text
-2.0.0-preview.1 -> 2.0.0-preview.2 -> 2.0.0-preview.3 -> 2.0.0
+2.0.0-preview1 -> 2.0.0-preview2 -> 2.0.0-preview3 -> 2.0.0
 ```
 
-Same-numeric-base collisions are not rejected as a class. PMU stages with
-`Save-PSResource`, validates identity, creates a recoverable backup and journal,
-uses exact `Install-PSResource -Reinstall` only for the collision, verifies the
-manifest and tree, and rolls back on recoverable failure.
+Same-numeric-base collisions must not be rejected as a class. The original
+Strategy C used `Save-PSResource` and selective `Install-PSResource -Reinstall`.
+The native transition instead stages with `Save-Module`, validates identity,
+creates a recoverable backup/journal and uses `Update-Module` without Force.
+Manifest/tree verification and recoverable-failure rollback remain required.
+
+PowerShellGet 2.2.5 rejects dotted labels before staging or updating. On
+2026-10-26 the owner confirmed that NovaModuleTools does not generate those
+labels and that they are not required for this update workflow. The offline
+fixture therefore uses native-compatible labels while retaining the same
+five transitions, exact target/source, license consent, WhatIf, inactive-target
+and registration-preservation assertions. General semantic-version comparison
+tests retain dotted labels; installation does not promise to support them.
 
 The earlier G-4A1/G-4A2 fail-closed collision policy and blanket ban on
-`-Reinstall` are **SUPERSEDED**. Raw `-Reinstall` is not exposed publicly or
-used indiscriminately.
+`-Reinstall` were superseded for original Strategy C. That historical exception
+does not authorize Force or an install fallback in the native transition.
 
 ## D-009 — GUID continuity (DECIDED)
 
