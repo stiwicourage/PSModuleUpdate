@@ -1,4 +1,6 @@
-BeforeAll { . "$PSScriptRoot/../../TestHelpers/Import-PMUTestSource.ps1" }
+BeforeAll {
+    . "$PSScriptRoot/../../TestHelpers/Import-PMUTestSource.ps1"
+}
 Describe 'Get-InstalledModuleIdentityList' -Tag 'PMU' {
     BeforeEach {
         $script:installationRoot = Join-Path $TestDrive ([guid]::NewGuid())
@@ -41,5 +43,32 @@ Describe 'Get-InstalledModuleIdentityList' -Tag 'PMU' {
         Rename-Item -LiteralPath $path -NewName 'unexpected'
         { Get-InstalledModuleIdentityList 'FixtureModule' 'AllUsers' } |
             Should -Throw -ErrorId 'PMU.UnsupportedInstallation'
+    }
+
+    It 'excludes the exact target before manifest validation and preserves remaining candidate order' {
+        $excluded = Initialize-PMUTestPackage $script:installationRoot '1.0.0'
+        $newer = Initialize-PMUTestPackage $script:installationRoot '3.0.0'
+        $older = Initialize-PMUTestPackage $script:installationRoot '2.0.0'
+        Set-Content (Join-Path $excluded 'FixtureModule.psd1') 'not a manifest'
+        $script:orderedCandidates = Get-Item $excluded, $newer, $older
+        Mock Get-ChildItem { $script:orderedCandidates }
+
+        $observations = @(Get-InstalledModuleIdentityList 'FixtureModule' 'AllUsers' $excluded)
+
+        $observations.FullVersion | Should -Be @('3.0.0', '2.0.0')
+        $observations.ManifestPath | Should -Be @(
+            (Join-Path $newer 'FixtureModule.psd1')
+            (Join-Path $older 'FixtureModule.psd1')
+        )
+    }
+
+    It 'does not exclude a candidate whose path differs only by case' {
+        $path = Initialize-PMUTestPackage $script:installationRoot '2.0.0'
+        $excluded = $path.ToUpperInvariant()
+
+        $observations = @(Get-InstalledModuleIdentityList 'FixtureModule' 'AllUsers' $excluded)
+
+        $observations.Count | Should -Be 1
+        $observations[0].ManifestPath | Should -BeExactly (Join-Path $path 'FixtureModule.psd1')
     }
 }

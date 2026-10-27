@@ -9,5 +9,7 @@ function Assert-RepositoryReceiptIdentity {
         "$($Receipt.UriHash)" -cmatch '^[A-F0-9]{64}$'
         "$($Receipt.ApiVersion)" -cin @('Unknown', 'V2', 'V3', 'Local', 'NugetServer', 'ContainerRegistry')
     )
-    if ($false -in $values) { Write-PMUError 'PMU.RepositoryRecoveryRequired' 'Repository receipt identity is invalid.' }
+    if ($false -in $values) {
+        Write-PMUError 'PMU.RepositoryRecoveryRequired' 'Repository receipt identity is invalid.'
+    }
 }

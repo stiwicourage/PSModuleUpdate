@@ -7,7 +7,7 @@ param(
 . (Join-Path $PSScriptRoot 'CiDependencyRoot.ps1')
 
 $script:PinnedVersion = @{
-    Pester                               = '5.7.1'
+    Pester = '5.7.1'
     'Microsoft.PowerShell.PSResourceGet' = '1.2.0'
 }
 
@@ -19,10 +19,10 @@ function Get-CiModuleInstallParameter {
     )
 
     $parameter = @{
-        Name        = $Name
-        Repository  = 'PSGallery'
-        Path        = $ModuleRoot
-        Force       = $true
+        Name = $Name
+        Repository = 'PSGallery'
+        Path = $ModuleRoot
+        Force = $true
         ErrorAction = 'Stop'
     }
     if ($script:PinnedVersion.ContainsKey($Name)) {
@@ -33,7 +33,10 @@ function Get-CiModuleInstallParameter {
 }
 
 function Save-CiPowerShellModule {
-    param([string[]]$Name, [Parameter(Mandatory)][string]$ModuleRoot)
+    param(
+        [string[]]$Name,
+        [Parameter(Mandatory)][string]$ModuleRoot
+    )
 
     $owner = New-CiDependencyRoot -Path $ModuleRoot
     try {
@@ -42,10 +45,11 @@ function Save-CiPowerShellModule {
             Save-Module @parameter
         }
         & (Get-Process -Id $PID).Path -NoLogo -NoProfile -File (Join-Path $PSScriptRoot 'CiDependencyProbe.ps1') -ModuleRoot $owner.Path
-        if ($LASTEXITCODE -ne 0) { throw 'Isolated dependency closure validation failed.' }
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Isolated dependency closure validation failed.'
+        }
         return $owner
-    }
-    catch {
+    } catch {
         Remove-CiDependencyRoot -Owner $owner
         throw
     }

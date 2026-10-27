@@ -27,7 +27,10 @@ Describe 'Qualification child process and cleanup' -Tag 'RepositoryQualification
 
     It 'reports cleanup failure explicitly rather than returning a passing live result' {
         Mock Invoke-QualificationRegistrationCleanup { throw 'cleanup fixture failure' }
-        $session = [pscustomobject]@{ Evidence = [ordered]@{ Outcome = 'Passed' }; Before = @() }
+        $session = [pscustomobject]@{
+            Evidence = [ordered]@{ Outcome = 'Passed' }
+            Before = @()
+        }
         Complete-QualificationSession $session
         $session.Evidence.Cleanup | Should -Be 'Failed'
         $session.Evidence.Outcome | Should -Be 'Failed'
@@ -36,7 +39,10 @@ Describe 'Qualification child process and cleanup' -Tag 'RepositoryQualification
     It 'compares existing repository state after successful owned-entry cleanup' {
         Mock Invoke-QualificationRegistrationCleanup {}
         Mock Get-QualificationRepositoryState { 'existing-registration' }
-        $session = [pscustomobject]@{ Evidence = [ordered]@{ Outcome = 'Passed' }; Before = @('existing-registration') }
+        $session = [pscustomobject]@{
+            Evidence = [ordered]@{ Outcome = 'Passed' }
+            Before = @('existing-registration')
+        }
         Complete-QualificationSession $session
         $session.Evidence.Cleanup | Should -Be 'Passed'
         Should -Invoke Invoke-QualificationRegistrationCleanup -Times 1 -Exactly
@@ -50,11 +56,20 @@ Describe 'Qualification child process and cleanup' -Tag 'RepositoryQualification
     }
 
     It 'plans a public update without splatting an absent PSCredential' {
-        Mock Get-PSModuleUpdate { [pscustomobject]@{ TargetVersion = '2.1.0'; RepositoryUri = 'https://example.test/' } }
+        Mock Get-PSModuleUpdate { [pscustomobject]@{
+                TargetVersion = '2.1.0'
+                RepositoryUri = 'https://example.test/'
+            } }
         Mock Assert-QualificationPlanIdentity {}
         $session = [pscustomobject]@{
-            Credential = $null; RepositoryName = 'QualificationFixture'; Evidence = @{}
-            Options = @{ Scenario = 'Gallery'; TargetVersion = '2.1.0'; RepositoryUri = 'https://example.test/' }
+            Credential = $null
+            RepositoryName = 'QualificationFixture'
+            Evidence = @{}
+            Options = @{
+                Scenario = 'Gallery'
+                TargetVersion = '2.1.0'
+                RepositoryUri = 'https://example.test/'
+            }
         }
         $module = New-Module -Name QualificationFixture -ScriptBlock {}
         (Get-QualificationPlan $session $module).TargetVersion | Should -Be '2.1.0'

@@ -9,7 +9,10 @@ Describe 'Test-RepositoryReceiptOwnerAlive' -Tag 'PMUUriBridge' {
         }
     }
     It 'rejects a receipt process id outside the operating-system range' {
-        $receipt = [pscustomobject]@{ OwnerPid = '99999999999'; OwnerStartedUtcTicks = '1' }
+        $receipt = [pscustomobject]@{
+            OwnerPid = '99999999999'
+            OwnerStartedUtcTicks = '1'
+        }
         { Test-RepositoryReceiptOwnerAlive $receipt } | Should -Throw -ErrorId 'PMU.RepositoryRecoveryRequired'
     }
 }

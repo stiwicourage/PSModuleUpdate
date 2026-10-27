@@ -1,4 +1,6 @@
-BeforeAll { . "$PSScriptRoot/../../TestHelpers/Import-PMUTestSource.ps1" }
+BeforeAll {
+    . "$PSScriptRoot/../../TestHelpers/Import-PMUTestSource.ps1"
+}
 Describe 'Get-ProviderLicenseRequirement' -Tag 'PMU', 'PMULicense' {
     Context 'Fail-closed provider license metadata' {
         It 'requires explicit consent when the qualified provider omits license metadata' {

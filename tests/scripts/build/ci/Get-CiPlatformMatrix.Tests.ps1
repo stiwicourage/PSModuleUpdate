@@ -37,7 +37,15 @@ Describe 'Get-CiPlatformMatrix' -Tag 'BuildTooling' {
 
     It 'rejects duplicate lane identifiers' {
         $path = Join-Path $TestDrive 'dup.json'
-        $lane = @{ id = 'a'; name = 'a'; runner = 'r'; os = 'Linux'; architecture = 'X64'; runtimeIdentifier = 'linux-x64'; powershell = '7.4' }
+        $lane = @{
+            id = 'a'
+            name = 'a'
+            runner = 'r'
+            os = 'Linux'
+            architecture = 'X64'
+            runtimeIdentifier = 'linux-x64'
+            powershell = '7.4'
+        }
         @{ lanes = @($lane, $lane) } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $path
 
         { Get-CiPlatformMatrix -LanePath $path } | Should -Throw '*duplicate*'
@@ -45,7 +53,15 @@ Describe 'Get-CiPlatformMatrix' -Tag 'BuildTooling' {
 
     It 'rejects a moving latest runner label' {
         $path = Join-Path $TestDrive 'latest.json'
-        $lane = @{ id = 'a'; name = 'a'; runner = 'macos-latest'; os = 'macOS'; architecture = 'Arm64'; runtimeIdentifier = 'osx-arm64'; powershell = '7.4' }
+        $lane = @{
+            id = 'a'
+            name = 'a'
+            runner = 'macos-latest'
+            os = 'macOS'
+            architecture = 'Arm64'
+            runtimeIdentifier = 'osx-arm64'
+            powershell = '7.4'
+        }
         @{ lanes = @($lane) } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $path
 
         { Get-CiPlatformMatrix -LanePath $path } | Should -Throw '*moving*'

@@ -4,6 +4,8 @@ Describe 'Resolve-ModuleInstallationRoot' -Tag 'PMU' {
         $user = Resolve-ModuleInstallationRoot 'CurrentUser'
         $all = Resolve-ModuleInstallationRoot 'AllUsers'
         $user | Should -Not -Be $all
-        if (-not $IsWindows) { $all | Should -Be '/usr/local/share/powershell/Modules' }
+        if (-not $IsWindows) {
+            $all | Should -Be '/usr/local/share/powershell/Modules'
+        }
     }
 }

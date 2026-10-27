@@ -1,7 +1,9 @@
 . (Join-Path $PSScriptRoot 'CiRuntimeEvidence.ps1')
 
 function Write-CiTestRuntimeEvidence {
-    if (-not $env:PMU_CI_TEST_RUNTIME_PATH) { return }
+    if (-not $env:PMU_CI_TEST_RUNTIME_PATH) {
+        return
+    }
     $context = Get-Content -LiteralPath $env:PMU_CI_RUNTIME_CONTEXT -Raw -ErrorAction Stop | ConvertFrom-Json
     $record = Get-CiRuntimeRecord
     Assert-CiRuntimeRecord -Record $record -Expected $context.Expected

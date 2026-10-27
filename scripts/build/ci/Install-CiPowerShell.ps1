@@ -19,10 +19,18 @@ function Get-CiPowerShellAssetName {
     )
 
     switch ($RuntimeIdentifier) {
-        'win-x64' {return "PowerShell-$Version-win-x64.zip"}
-        'linux-x64' {return "powershell-$Version-linux-x64.tar.gz"}
-        'osx-arm64' {return "powershell-$Version-osx-arm64.tar.gz"}
-        default {throw "Unsupported runtime identifier '$RuntimeIdentifier'."}
+        'win-x64' {
+            return "PowerShell-$Version-win-x64.zip"
+        }
+        'linux-x64' {
+            return "powershell-$Version-linux-x64.tar.gz"
+        }
+        'osx-arm64' {
+            return "powershell-$Version-osx-arm64.tar.gz"
+        }
+        default {
+            throw "Unsupported runtime identifier '$RuntimeIdentifier'."
+        }
     }
 }
 
@@ -170,7 +178,11 @@ function Assert-CiInstalledPowerShell {
         [Parameter(Mandatory)]$Installation
     )
 
-    $name = if ($Installation.runtimeIdentifier -like 'win-*') {'pwsh.exe'} else {'pwsh'}
+    $name = if ($Installation.runtimeIdentifier -like 'win-*') {
+        'pwsh.exe'
+    } else {
+        'pwsh'
+    }
     $record = Read-CiRuntimeProbe -Executable (Join-Path $Installation.directory $name)
     $runtime = @{
         'win-x64' = @('Windows', 'X64')
@@ -178,8 +190,16 @@ function Assert-CiInstalledPowerShell {
         'osx-arm64' = @('macOS', 'Arm64')
     }
     $platform = $runtime[$Installation.runtimeIdentifier]
-    if (-not $platform) { throw 'Unsupported provisioning runtime.' }
-    $expected = @{ OperatingSystem = $platform[0]; Architecture = $platform[1]; PowerShellVersion = $Installation.version; PowerShellChannel = $Installation.channel; Executable = $record.Executable }
+    if (-not $platform) {
+        throw 'Unsupported provisioning runtime.'
+    }
+    $expected = @{
+        OperatingSystem = $platform[0]
+        Architecture = $platform[1]
+        PowerShellVersion = $Installation.version
+        PowerShellChannel = $Installation.channel
+        Executable = $record.Executable
+    }
     Assert-CiRuntimeRecord -Record $record -Expected $expected
     $Installation | Add-Member -NotePropertyName executable -NotePropertyValue $record.Executable -Force
     $Installation | Add-Member -NotePropertyName runtime -NotePropertyValue $record -Force

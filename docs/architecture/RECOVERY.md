@@ -19,6 +19,28 @@ never part of this record.
 
 ## Interrupted operations
 
+### Native worker ownership
+
+The unreleased native updater transfers the same original installation lock
+between parent and worker. Once the worker acquires it, it rechecks the approving
+process's PID/start identity, journal transaction/state/hash and selected
+installation. A dead approver or a recovery/replacement that wins the handoff
+gap invalidates the request before native mutation.
+
+An active writer retains that lock even if its approver exits or its input pipe
+closes. Recovery must acquire the original lock; a timeout is not permission to
+kill a potentially writing worker, release its exclusion or start rollback.
+The parent reacquires ownership before interpreting results, rollback or
+cleanup. Transaction-less historical journals remain subject to normal
+recovery validation, but do not authorize a new native handoff.
+
+Permanent cross-process ownership tests live in
+`tests/NativeWorkerLifetime.Tests.ps1`. They run real worker/approver processes
+and the real lock/journal/protocol code with a simulated provider boundary.
+They do not replace real provider installation or platform qualification.
+
+### Next approved attempt
+
 On an approved installation attempt, PMU acquires the same installation lock
 and inspects unfinished recovery state before attempting another update.
 It validates journal contents and referenced paths rather than following

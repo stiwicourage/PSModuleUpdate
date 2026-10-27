@@ -2,7 +2,10 @@ BeforeAll { . "$PSScriptRoot/../../TestHelpers/Import-PMUTestSource.ps1" }
 Describe 'Assert-ActivePlanIdentity' -Tag 'PMU' {
     It 'accepts an unloaded installed reference even when a different copy is loaded' {
         $operation = Initialize-PMUTestOperation $TestDrive
-        $script:otherLoaded = [pscustomobject]@{ ManifestPath = "$TestDrive/other/FixtureModule.psd1"; Version = @{ FullVersion = '1.0.0' } }
+        $script:otherLoaded = [pscustomobject]@{
+            ManifestPath = "$TestDrive/other/FixtureModule.psd1"
+            Version = @{ FullVersion = '1.0.0' }
+        }
         $operation.Plan.ActivePath = $otherLoaded.ManifestPath
         $operation.Plan.ActiveVersion = '1.0.0'
         Mock Get-ActiveModuleIdentity { $script:otherLoaded }
@@ -13,7 +16,10 @@ Describe 'Assert-ActivePlanIdentity' -Tag 'PMU' {
         $operation.Record.WasLoaded = $true
         $operation.Plan.ActivePath = $operation.Record.ReferencePath
         $operation.Plan.ActiveVersion = '2.0.0-preview.1'
-        Mock Get-ActiveModuleIdentity { [pscustomobject]@{ ManifestPath = 'different.psd1'; Version = @{ FullVersion = '1.0.0' } } }
+        Mock Get-ActiveModuleIdentity { [pscustomobject]@{
+                ManifestPath = 'different.psd1'
+                Version = @{ FullVersion = '1.0.0' }
+            } }
         { Assert-ActivePlanIdentity $operation } | Should -Throw -ErrorId 'PMU.PlanStale'
     }
     It 'rejects an active path changed independently from the approved plan' {

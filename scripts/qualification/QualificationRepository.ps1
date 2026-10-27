@@ -1,13 +1,17 @@
 # Only the unique entry owned by this session may be removed. No Force, Set or Reset.
 function Initialize-QualificationOption {
     param([hashtable]$Options)
-    if (-not $IsMacOS) { throw 'This bounded qualification harness currently requires macOS.' }
+    if (-not $IsMacOS) {
+        throw 'This bounded qualification harness currently requires macOS.'
+    }
     $initializers = @{
         Gallery = ${function:Initialize-QualificationGalleryOption}
         NuGet = ${function:Initialize-QualificationNuGetOption}
         Private = ${function:Assert-QualificationPrivateOption}
     }
-    if (-not $initializers.ContainsKey($Options.Scenario)) { throw 'Unknown qualification scenario.' }
+    if (-not $initializers.ContainsKey($Options.Scenario)) {
+        throw 'Unknown qualification scenario.'
+    }
     & $initializers[$Options.Scenario] $Options
     Assert-QualificationEndpoint $Options.RepositoryUri
 }
@@ -33,9 +37,13 @@ function Initialize-QualificationNuGetOption {
 function Assert-QualificationPrivateOption {
     param([hashtable]$Options)
     foreach ($key in @('RepositoryUri', 'SeedName', 'SeedVersion', 'TargetVersion')) {
-        if (-not $Options[$key]) { throw 'Private qualification requires caller-supplied endpoint and pinned module versions.' }
+        if (-not $Options[$key]) {
+            throw 'Private qualification requires caller-supplied endpoint and pinned module versions.'
+        }
     }
-    if ($Options.SeedName -notmatch '^[A-Za-z0-9_.-]+$') { throw 'Unsafe qualification fixture name.' }
+    if ($Options.SeedName -notmatch '^[A-Za-z0-9_.-]+$') {
+        throw 'Unsafe qualification fixture name.'
+    }
     Assert-QualificationFixtureVersion $Options.SeedVersion
     Assert-QualificationFixtureVersion $Options.TargetVersion
     $Options.DiscoveryName = $Options.SeedName
@@ -43,7 +51,9 @@ function Assert-QualificationPrivateOption {
 
 function Assert-QualificationFixtureVersion {
     param([string]$Version)
-    if ($Version -notmatch '^\d+\.\d+\.\d+([.-][A-Za-z0-9.-]+)?$') { throw 'Unsafe qualification fixture version.' }
+    if ($Version -notmatch '^\d+\.\d+\.\d+([.-][A-Za-z0-9.-]+)?$') {
+        throw 'Unsafe qualification fixture version.'
+    }
 }
 
 function Initialize-QualificationRegistration {
@@ -52,7 +62,9 @@ function Initialize-QualificationRegistration {
     $Session.RepositoryName = "PMUQualification-$([guid]::NewGuid().ToString('N'))"
     $Session.Evidence.OwnedRegistrationName = $Session.RepositoryName
     $apiVersion = 'V3'
-    if ($Session.Options.Scenario -eq 'Gallery') { $apiVersion = 'V2' }
+    if ($Session.Options.Scenario -eq 'Gallery') {
+        $apiVersion = 'V2'
+    }
     $Session.RegistrationOwned = $true
     Microsoft.PowerShell.PSResourceGet\Register-PSResourceRepository -Name $Session.RepositoryName -Uri $Session.Options.RepositoryUri -ApiVersion $apiVersion -ErrorAction Stop
     $Session.Evidence.RepositorySelection = 'Unique harness-owned consumer registration; URI must resolve to this registration.'
@@ -60,9 +72,13 @@ function Initialize-QualificationRegistration {
 
 function Invoke-QualificationRegistrationCleanup {
     param([object]$Session)
-    if (-not $Session.RegistrationOwned) { return }
+    if (-not $Session.RegistrationOwned) {
+        return
+    }
     $repository = Microsoft.PowerShell.PSResourceGet\Get-PSResourceRepository -Name $Session.RepositoryName -ErrorAction Stop
-    if ("$($repository.Uri)" -cne $Session.Options.RepositoryUri) { throw 'Owned registration endpoint changed; manual cleanup required.' }
+    if ("$($repository.Uri)" -cne $Session.Options.RepositoryUri) {
+        throw 'Owned registration endpoint changed; manual cleanup required.'
+    }
     Microsoft.PowerShell.PSResourceGet\Unregister-PSResourceRepository -Name $Session.RepositoryName -ErrorAction Stop
     $Session.RegistrationOwned = $false
 }

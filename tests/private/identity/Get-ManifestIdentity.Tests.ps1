@@ -21,4 +21,18 @@ Describe 'Get-ManifestIdentity' -Tag 'PMU' {
         Remove-Item "$path/FixtureModule.psm1"
         { Get-ManifestIdentity "$path/FixtureModule.psd1" } | Should -Throw -ErrorId 'PMU.ModuleIdentityMismatch'
     }
+    It 'preserves canonical identity fields and prerelease version types' {
+        $path = Initialize-PMUTestPackage $TestDrive '1.2.3-preview.1'
+        $manifest = Join-Path $path 'FixtureModule.psd1'
+        $identity = Get-ManifestIdentity (Join-Path $path './FixtureModule.psd1')
+
+        $identity | Should -BeOfType [pscustomobject]
+        @($identity.PSObject.Properties.Name) | Should -Be @('Name', 'Guid', 'Version', 'ManifestPath')
+        $identity.Name | Should -BeExactly 'FixtureModule'
+        $identity.Guid | Should -BeOfType [guid]
+        $identity.Guid | Should -Be ([guid]'a1111111-1111-1111-1111-111111111111')
+        $identity.Version | Should -BeOfType [pscustomobject]
+        $identity.Version.FullVersion | Should -BeExactly '1.2.3-preview.1'
+        $identity.ManifestPath | Should -BeExactly $manifest
+    }
 }

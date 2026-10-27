@@ -14,5 +14,13 @@ Describe 'Invoke-OwnedRepositoryRegistration' -Tag 'PMUUriBridge' {
             { Invoke-OwnedRepositoryRegistration (Initialize-PMUUriFixture $TestDrive).Source $TestDrive } | Should -Throw
             Should -Invoke Register-OwnedRepository -Times 0
         }
+        It 'preserves the registration exception after successful compensation' {
+            $original = [InvalidOperationException]::new('registration failed')
+            Mock Register-OwnedRepository { throw $original }
+            Mock Clear-OwnedRepositoryReceipt {}
+            try { Invoke-OwnedRepositoryRegistration (Initialize-PMUUriFixture $TestDrive).Source $TestDrive } catch { $caught = $_ }
+            [object]::ReferenceEquals($caught.Exception, $original) | Should -BeTrue
+            Should -Invoke Clear-OwnedRepositoryReceipt -Times 1
+        }
     }
 }

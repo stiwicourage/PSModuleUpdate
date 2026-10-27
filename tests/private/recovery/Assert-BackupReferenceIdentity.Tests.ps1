@@ -11,7 +11,12 @@ Describe 'Assert-BackupReferenceIdentity' -Tag 'PMUBackupReference' {
         It 'does not accept an arbitrary matching-GUID source outside the exact backup path' {
             $path = Initialize-PMUTestPackage $TestDrive '2.0.0-preview.1'
             $reference = Get-ManifestIdentity "$path/FixtureModule.psd1"
-            $script:verifiedBackup = [pscustomobject]@{ Name = $reference.Name; Guid = $reference.Guid; ManifestPath = 'different-backup.psd1'; Version = $reference.Version }
+            $script:verifiedBackup = [pscustomobject]@{
+                Name = $reference.Name
+                Guid = $reference.Guid
+                ManifestPath = 'different-backup.psd1'
+                Version = $reference.Version
+            }
             Mock Get-VerifiedRecoveryBackup { $script:verifiedBackup }
             { Assert-BackupReferenceIdentity $reference ([pscustomobject]@{ State = 'ReplacementInProgress' }) } | Should -Throw -ErrorId 'PMU.UnsupportedInstallation*'
         }
@@ -22,7 +27,12 @@ Describe 'Assert-BackupReferenceIdentity' -Tag 'PMUBackupReference' {
     It 'rejects a reference whose full version differs from the verified backup' {
         $path = Initialize-PMUTestPackage $TestDrive '2.0.0-preview.1'
         $reference = Get-ManifestIdentity "$path/FixtureModule.psd1"
-        $script:verifiedBackup = [pscustomobject]@{ Name = $reference.Name; Guid = $reference.Guid; ManifestPath = $reference.ManifestPath; Version = [pscustomobject]@{ FullVersion = '2.0.0-preview.2' } }
+        $script:verifiedBackup = [pscustomobject]@{
+            Name = $reference.Name
+            Guid = $reference.Guid
+            ManifestPath = $reference.ManifestPath
+            Version = [pscustomobject]@{ FullVersion = '2.0.0-preview.2' }
+        }
         Mock Get-VerifiedRecoveryBackup { $script:verifiedBackup }
         { Assert-BackupReferenceIdentity $reference ([pscustomobject]@{ State = 'ReplacementInProgress' }) } | Should -Throw -ErrorId 'PMU.ModuleIdentityMismatch*'
     }

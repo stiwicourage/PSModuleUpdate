@@ -22,13 +22,26 @@ Describe 'PMU architecture' -Tag 'PMU' {
     It 'does not bootstrap or hot reload and confines registration writes to owned transport adapters' {
         foreach ($file in $files) {
             $text = Get-Content $file.FullName -Raw
-            $text | Should -Not -Match '(?i)\b(Set-PSResourceRepository|Remove-Module|Update-Module|Install-Module)\b'
+            $text | Should -Not -Match '(?i)\b(Set-PSResourceRepository|Remove-Module|Install-Module)\b'
+            if ($text -match '\bUpdate-Module\b') {
+                $file.BaseName | Should -Be 'Install-ProviderResource'
+            }
+            if ($file.Directory.Name -eq 'provider') {
+                $text | Should -Not -Match '(?i)\bForce\b'
+            }
             if ($text -match '\bRegister-PSResourceRepository\b') {
                 $file.BaseName | Should -Be 'Register-OwnedRepository'
                 $text | Should -Not -Match '(?i)\b(Force|CredentialInfo|Trusted)\b'
             }
-            if ($text -match '\bUnregister-PSResourceRepository\b') { $file.BaseName | Should -Be 'Clear-OwnedRepositoryReceipt' }
+            if ($text -match '\bUnregister-PSResourceRepository\b') {
+                $file.BaseName | Should -Be 'Clear-OwnedRepositoryReceipt'
+            }
         }
+    }
+    It 'applies updates only through the native Update-Module adapter' -Tag 'PMUNativeAdapter' {
+        $adapter = Get-Content "$root/src/private/provider/Install-ProviderResource.ps1" -Raw
+        $adapter | Should -Match 'PowerShellGet\\Update-Module'
+        $adapter | Should -Not -Match '\bInstall-PSResource\b'
     }
     It 'has a source-mirrored test for every production helper and public command' {
         foreach ($file in $files) {

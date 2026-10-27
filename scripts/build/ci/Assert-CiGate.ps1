@@ -50,11 +50,16 @@ function Read-CiLaneManifest {
     foreach ($file in Get-ChildItem -LiteralPath $Directory -Recurse -File -Filter 'lane-manifest.json') {
         try {
             $entry = Get-Content -LiteralPath $file.FullName -Raw -ErrorAction Stop | ConvertFrom-Json -AsHashtable -ErrorAction Stop
-            if ($entry -isnot [System.Collections.IDictionary]) { throw 'Manifest must be a JSON object.' }
+            if ($entry -isnot [System.Collections.IDictionary]) {
+                throw 'Manifest must be a JSON object.'
+            }
             $entry['_artifactDirectory'] = $file.Directory.FullName
             $entry
         } catch {
-            @{ laneId = '<invalid>'; readError = $_.Exception.Message }
+            @{
+                laneId = '<invalid>'
+                readError = $_.Exception.Message
+            }
         }
     }
 }
@@ -68,7 +73,7 @@ function Get-CiLaneManifestFailure {
         [Parameter(Mandatory)]$RunContext
     )
 
-    $own = @($Manifest | Where-Object {$_.laneId -eq $LaneId})
+    $own = @($Manifest | Where-Object { $_.laneId -eq $LaneId })
     if ($own.Count -ne 1) {
         return "Lane '$LaneId' produced $( if ($own.Count -eq 0) {'no manifest'} else {"$( $own.Count ) manifests"} )."
     }
@@ -81,9 +86,13 @@ function Get-CiLaneManifestFailure {
     try {
         $entry = $own[0]
         $expected = @($RunContext.lanes | Where-Object id -eq $LaneId)
-        if ($expected.Count -ne 1) { throw 'Lane has no unique expected configuration.' }
+        if ($expected.Count -ne 1) {
+            throw 'Lane has no unique expected configuration.'
+        }
         $artifactName = "pmu-ci-lane-$($RunContext.runId)-$($RunContext.runAttempt)-$LaneId"
-        if ((Split-Path -Leaf $entry._artifactDirectory) -cne $artifactName) { throw 'Manifest is not in its current-run named artifact directory.' }
+        if ((Split-Path -Leaf $entry._artifactDirectory) -cne $artifactName) {
+            throw 'Manifest is not in its current-run named artifact directory.'
+        }
         Assert-CiGateManifestEvidence -Manifest $entry -Expected $expected[0] -RunContext $RunContext -Directory $entry._artifactDirectory
     } catch {
         "Lane '$LaneId' evidence is invalid: $($_.Exception.Message)"
@@ -99,16 +108,20 @@ function Test-CiGateResult {
         $RunContext
     )
 
-    if (-not $RunContext) { $RunContext = Get-CiGateRunContext -LanePath $LanePath }
+    if (-not $RunContext) {
+        $RunContext = Get-CiGateRunContext -LanePath $LanePath
+    }
     foreach ($name in 'commitSha', 'runId', 'runAttempt') {
-        if ([string]::IsNullOrWhiteSpace($RunContext.$name)) { return 'Gate requires nonempty current commit, run id and attempt.' }
+        if ([string]::IsNullOrWhiteSpace($RunContext.$name)) {
+            return 'Gate requires nonempty current commit, run id and attempt.'
+        }
     }
     $manifest = @(Read-CiLaneManifest -Directory $ManifestDirectory)
     Get-CiGateJobFailure -JobResult $JobResult
     foreach ($laneId in $ExpectedLaneId) {
         Get-CiLaneManifestFailure -LaneId $laneId -Manifest $manifest -CommitSha $RunContext.commitSha -RunContext $RunContext
     }
-    foreach ($entry in $manifest | Where-Object {$_.laneId -notin $ExpectedLaneId}) {
+    foreach ($entry in $manifest | Where-Object { $_.laneId -notin $ExpectedLaneId }) {
         "Unexpected lane manifest '$( $entry.laneId )'."
     }
 }
@@ -125,13 +138,13 @@ function Get-CiGateRunContext {
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
-    $expectedLaneId = @((Get-Content -LiteralPath $LanePath -Raw | ConvertFrom-Json).lanes | ForEach-Object {$_.id})
+    $expectedLaneId = @((Get-Content -LiteralPath $LanePath -Raw | ConvertFrom-Json).lanes | ForEach-Object { $_.id })
     $failure = @(Test-CiGateResult -JobResult (ConvertTo-CiGateJobResult -NeedsJson $env:NEEDS_JSON) `
             -ExpectedLaneId $expectedLaneId `
             -ManifestDirectory $ManifestDirectory)
 
     if ($failure.Count -gt 0) {
-        $failure | ForEach-Object {Write-Output "::error title=ci-gate::$_"}
+        $failure | ForEach-Object { Write-Output "::error title=ci-gate::$_" }
         exit 1
     }
 

@@ -1,6 +1,20 @@
-BeforeAll { . "$PSScriptRoot/../../TestHelpers/Import-PMUTestSource.ps1" }
+BeforeAll {
+    . "$PSScriptRoot/../../TestHelpers/Import-PMUTestSource.ps1"
+    function Assert-NativeRepositoryBinding {
+    }
+}
 Describe 'Initialize-StagedPackage' -Tag 'PMU' {
-    BeforeEach { Mock Assert-RepositoryBinding {} }
+    BeforeEach {
+        Mock Assert-RepositoryBinding {}
+        Mock Assert-NativeRepositoryBinding {}
+    }
+    It 'checks the isolated native source before downloading any staged tree' -Tag 'PMUNativeHandoff' {
+        $operation = Initialize-PMUTestOperation $TestDrive
+        Mock Assert-NativeRepositoryBinding { Write-PMUError 'PMU.SourceMismatch' 'fixture mismatch' }
+        Mock Save-ProviderResource {}
+        { Initialize-StagedPackage $operation } | Should -Throw -ErrorId 'PMU.SourceMismatch'
+        Should -Invoke Save-ProviderResource -Times 0
+    }
     It 'rejects an incomplete staged manifest without invoking provider installation' {
         $operation = Initialize-PMUTestOperation $TestDrive
         Mock Save-ProviderResource {}

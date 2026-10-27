@@ -1,7 +1,13 @@
 function Restore-InstallationBackup {
-    param([object]$Journal, [object]$Operation)
+    param(
+        [object]$Journal,
+        [object]$Operation
+    )
+
     Assert-RecoveryJournal $Journal $Operation
-    if ($Journal.Reinstall) { $null = Get-VerifiedRecoveryBackup $Journal }
+    if ($Journal.Reinstall) {
+        $null = Get-VerifiedRecoveryBackup $Journal
+    }
     Clear-ControlledTarget $Journal
     if ($Journal.Reinstall) {
         Copy-Item -LiteralPath $Journal.BackupPath -Destination $Journal.TargetPath -Recurse -ErrorAction Stop

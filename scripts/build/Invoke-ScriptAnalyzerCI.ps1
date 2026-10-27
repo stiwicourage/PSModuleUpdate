@@ -20,8 +20,8 @@ function Invoke-RepositoryAnalysis {
 
     $settingsPath = Join-Path $PSScriptRoot 'PSScriptAnalyzerSettings.psd1'
     $findings = @(foreach ($path in @(Get-RepositoryAnalysisTarget -ProjectRoot $ProjectRoot)) {
-        Invoke-ScriptAnalyzer -Path $path -Recurse -Settings $settingsPath -ErrorAction Stop
-    })
+            Invoke-ScriptAnalyzer -Path $path -Recurse -Settings $settingsPath -ErrorAction Stop
+        })
     if ($findings.Count -gt 0) {
         $findings | Format-List RuleName, ScriptName, Line, Message | Out-Host
         throw "ScriptAnalyzer reported $($findings.Count) finding(s). Fix them before continuing."

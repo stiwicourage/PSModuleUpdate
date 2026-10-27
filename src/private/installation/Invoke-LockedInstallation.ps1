@@ -6,6 +6,6 @@ function Invoke-LockedInstallation {
     Clear-CompletedOperation $Operation
     Assert-ExactTarget $Operation
     Assert-InstallationConsent $Operation
-    $tree = @(Initialize-StagedPackage $Operation)
+    $tree = @(Invoke-NativeHandoff $Operation $alreadyInstalled)
     Complete-VerifiedInstallation $Operation $tree $alreadyInstalled
 }

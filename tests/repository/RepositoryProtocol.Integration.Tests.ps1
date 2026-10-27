@@ -5,7 +5,9 @@ BeforeAll {
     $script:launcher = "$qualificationRoot/scripts/qualification/Invoke-RepositoryQualification.ps1"
     function Test-QualificationPrivateInput {
         foreach ($name in @('ADO_PAT', 'PMU_QUALIFICATION_PRIVATE_URI', 'PMU_QUALIFICATION_PRIVATE_MODULE', 'PMU_QUALIFICATION_PRIVATE_SEED', 'PMU_QUALIFICATION_PRIVATE_TARGET')) {
-            if (-not [Environment]::GetEnvironmentVariable($name)) { return $false }
+            if (-not [Environment]::GetEnvironmentVariable($name)) {
+                return $false
+            }
         }
         $true
     }
@@ -20,7 +22,10 @@ BeforeAll {
 
 Describe 'Live repository protocol qualification' -Tag 'RepositoryLive' -Skip:($env:PMU_QUALIFICATION_LIVE -ne '1') {
     It 'updates an unloaded independent ThreadJob module from PSGallery with exact source binding' {
-        $options = @{ Scenario = 'Gallery'; ModulePath = $modulePath }
+        $options = @{
+            Scenario = 'Gallery'
+            ModulePath = $modulePath
+        }
         $result = & $launcher -Options $options -EnableLive -ProviderStoreApproved:($env:PMU_QUALIFICATION_STORE_APPROVED -eq '1')
         $result.Outcome | Should -Be 'Passed'
         $result.Cleanup | Should -Be 'Passed'
@@ -35,7 +40,10 @@ Describe 'Live repository protocol qualification' -Tag 'RepositoryLive' -Skip:($
     }
 
     It 'rejects a real NuGet.org nonmodule package before any installation mutation' {
-        $options = @{ Scenario = 'NuGet'; ModulePath = $modulePath }
+        $options = @{
+            Scenario = 'NuGet'
+            ModulePath = $modulePath
+        }
         $result = & $launcher -Options $options -EnableLive -ProviderStoreApproved:($env:PMU_QUALIFICATION_STORE_APPROVED -eq '1')
         $result.Cleanup | Should -Be 'Passed'
         if ($result.Outcome -eq 'ProviderLimitation') {
@@ -52,8 +60,11 @@ Describe 'Live repository protocol qualification' -Tag 'RepositoryLive' -Skip:($
             return
         }
         $options = @{
-            Scenario = 'Private'; ModulePath = $modulePath; RepositoryUri = $env:PMU_QUALIFICATION_PRIVATE_URI
-            SeedName = $env:PMU_QUALIFICATION_PRIVATE_MODULE; SeedVersion = $env:PMU_QUALIFICATION_PRIVATE_SEED
+            Scenario = 'Private'
+            ModulePath = $modulePath
+            RepositoryUri = $env:PMU_QUALIFICATION_PRIVATE_URI
+            SeedName = $env:PMU_QUALIFICATION_PRIVATE_MODULE
+            SeedVersion = $env:PMU_QUALIFICATION_PRIVATE_SEED
             TargetVersion = $env:PMU_QUALIFICATION_PRIVATE_TARGET
         }
         $result = & $launcher -Options $options -EnableLive -ProviderStoreApproved:($env:PMU_QUALIFICATION_STORE_APPROVED -eq '1')

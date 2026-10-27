@@ -140,8 +140,7 @@ if ($shouldUploadCoverage) {
         if ($LASTEXITCODE -ne 0) {
             throw "CodeScene branch-coverage upload failed with exit code $LASTEXITCODE."
         }
-    }
-    else {
+    } else {
         Write-Host "Skipping branch-coverage upload: '$resolvedCoveragePath' does not contain <counter type=`"BRANCH`"> entries."
     }
 }

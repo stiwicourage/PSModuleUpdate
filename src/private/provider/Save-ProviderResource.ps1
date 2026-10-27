@@ -1,8 +1,12 @@
 function Save-ProviderResource {
     param([object]$Operation)
+    Assert-NativeProviderContext $Operation
     $parameters = Get-ProviderMutationParameter $Operation
     $parameters.Path = $Operation.StageRoot
-    $parameters.IncludeXml = $true
-    try { $null = Microsoft.PowerShell.PSResourceGet\Save-PSResource @parameters }
-    catch { Write-ProviderError $_ 'PMU.InstallationFailed' }
+    $parameters.Repository = Get-OperationRepositoryName $Operation
+    try {
+        $null = PowerShellGet\Save-Module @parameters
+    } catch {
+        Write-ProviderError $_ 'PMU.InstallationFailed'
+    }
 }

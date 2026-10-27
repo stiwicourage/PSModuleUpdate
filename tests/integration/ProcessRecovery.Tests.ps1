@@ -21,7 +21,7 @@ Describe 'PMU backup-only public recovery' -Tag 'PMUBackupReference' {
         Test-Path "$root/installs.txt" | Should -BeFalse
     }
 }
-Describe 'PMU process recovery and concurrency' -Tag 'PMU' {
+Describe 'PMU process recovery and concurrency' -Tag 'PMU', 'PMUProcessRecovery' {
     BeforeEach {
         $script:processRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
         $null = Initialize-PMUTestPackage "$processRoot/Modules" '1.0.0'
@@ -54,7 +54,9 @@ Describe 'PMU process recovery and concurrency' -Tag 'PMU' {
             ($b.Output | ConvertFrom-Json).RepositoryName | Should -Be $SecondRepository
             @((($a.Output | ConvertFrom-Json).Outcome), (($b.Output | ConvertFrom-Json).Outcome)) | Sort-Object | Should -Be @('AlreadyInstalled', 'Installed')
             @(Get-Content "$processRoot/installs.txt").Count | Should -Be 1
-        } finally { Close-PMUChildProcess @($first, $second) }
+        } finally {
+            Close-PMUChildProcess @($first, $second)
+        }
     }
     It 'times out a real competing process, releases the OS lock after hard kill, and publicly recovers' {
         $holder = Invoke-PMUChildProcess $processRoot 'Hold'
@@ -68,7 +70,9 @@ Describe 'PMU process recovery and concurrency' -Tag 'PMU' {
             $recovered = Receive-PMUChildProcess (Invoke-PMUChildProcess $processRoot 'Recover')
             $recovered.ExitCode | Should -Be 0 -Because $recovered.Error
             ($recovered.Output | ConvertFrom-Json).Outcome | Should -Be 'Recovered'
-        } finally { Close-PMUChildProcess @($holder) }
+        } finally {
+            Close-PMUChildProcess @($holder)
+        }
     }
     It 'keeps the actual loaded module active while reporting replaced files require restart' {
         [IO.File]::WriteAllText("$processRoot/Modules/FixtureModule/2.0.0/FixtureModule.psm1", '$script:FixtureValue = 1')

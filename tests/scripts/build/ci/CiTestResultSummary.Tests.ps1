@@ -3,7 +3,11 @@ BeforeAll {
     . (Join-Path $root 'scripts/build/ci/CiTestResultSummary.ps1')
 
     function Build-NUnitFile {
-        param([string]$Name, [string[]]$Case)
+        param(
+            [string]$Name,
+            [string[]]$Case
+        )
+
         $path = Join-Path $TestDrive $Name
         $passed = @($Case | Where-Object { $_ -match 'result="Success"' }).Count
         $skipped = @($Case | Where-Object { $_ -match 'result="Ignored"' }).Count
@@ -14,7 +18,11 @@ BeforeAll {
     }
 
     function Build-CaseXml {
-        param([string]$Name, [string]$Result)
+        param(
+            [string]$Name,
+            [string]$Result
+        )
+
         "<test-case name=`"$Name`" result=`"$Result`" />"
     }
 }
@@ -75,15 +83,42 @@ Describe 'Get-CiTestResultSummary' -Tag 'BuildTooling' {
     }
 
     It 'rejects invalid summary-only NUnit evidence: <Name>' -ForEach @(
-        @{ Name = 'empty file'; Xml = '' }
-        @{ Name = 'malformed XML'; Xml = '<test-results' }
-        @{ Name = 'unrelated XML'; Xml = '<document />' }
-        @{ Name = 'multiple suites'; Xml = '<test-results total="2" errors="0" failures="0" inconclusive="0" skipped="0"><test-suite total="1" passed="1" failed="0" skipped="0" /><test-suite total="1" passed="1" failed="0" skipped="0" /></test-results>' }
-        @{ Name = 'multiple documents'; Xml = '<test-results /><test-results />' }
-        @{ Name = 'negative counts'; Xml = '<test-results total="-1" errors="0" failures="0" inconclusive="0" skipped="0"><test-suite total="-1" passed="-1" failed="0" skipped="0" /></test-results>' }
-        @{ Name = 'missing counts'; Xml = '<test-results><test-suite /></test-results>' }
-        @{ Name = 'inconsistent counts'; Xml = '<test-results total="8" errors="0" failures="0" inconclusive="0" skipped="0"><test-suite total="8" passed="7" failed="0" skipped="0" /></test-results>' }
-        @{ Name = 'fractional counts'; Xml = '<test-results total="1.5" errors="0" failures="0" inconclusive="0" skipped="0"><test-suite total="1.5" passed="1.5" failed="0" skipped="0" /></test-results>' }
+        @{
+            Name = 'empty file'
+            Xml = ''
+        }
+        @{
+            Name = 'malformed XML'
+            Xml = '<test-results'
+        }
+        @{
+            Name = 'unrelated XML'
+            Xml = '<document />'
+        }
+        @{
+            Name = 'multiple suites'
+            Xml = '<test-results total="2" errors="0" failures="0" inconclusive="0" skipped="0"><test-suite total="1" passed="1" failed="0" skipped="0" /><test-suite total="1" passed="1" failed="0" skipped="0" /></test-results>'
+        }
+        @{
+            Name = 'multiple documents'
+            Xml = '<test-results /><test-results />'
+        }
+        @{
+            Name = 'negative counts'
+            Xml = '<test-results total="-1" errors="0" failures="0" inconclusive="0" skipped="0"><test-suite total="-1" passed="-1" failed="0" skipped="0" /></test-results>'
+        }
+        @{
+            Name = 'missing counts'
+            Xml = '<test-results><test-suite /></test-results>'
+        }
+        @{
+            Name = 'inconsistent counts'
+            Xml = '<test-results total="8" errors="0" failures="0" inconclusive="0" skipped="0"><test-suite total="8" passed="7" failed="0" skipped="0" /></test-results>'
+        }
+        @{
+            Name = 'fractional counts'
+            Xml = '<test-results total="1.5" errors="0" failures="0" inconclusive="0" skipped="0"><test-suite total="1.5" passed="1.5" failed="0" skipped="0" /></test-results>'
+        }
     ) {
         $path = Join-Path $TestDrive "$Name.xml"
         Set-Content -LiteralPath $path -Value $Xml

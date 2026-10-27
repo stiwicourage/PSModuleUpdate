@@ -41,11 +41,127 @@ Nova owns discovery, supported Pester selection, StrictMode, and result output.
 
 Nova writes unit results to `artifacts/UnitTestResults.xml`. Unit coverage is
 enabled in `project.json`, targets the authored source paths, and writes JaCoCo
-to `artifacts/coverage.xml` with the existing 90 percent target. Integration
+to `artifacts/coverage.xml` with the configured 95 percent target. Integration
 tests remain a separate phase and do not generate the unit coverage report.
 The test/coverage workflow runs `Invoke-NovaTest` before `Test-NovaBuild` and
 uploads that report for CodeScene and Codecov; test counts alone do not
 establish a measured coverage percentage.
+
+### Native update transition
+
+Current local functional evidence on macOS ARM64 / PowerShell 7.4.21 passes.
+This is not complete platform or lifecycle qualification:
+
+- ScriptAnalyzer: zero findings; build passed.
+- Unit tests: 803 passed, zero failed, one existing platform skip; coverage
+  97.12% against the unchanged 95% threshold.
+- The final ordinary `pwsh -NoLogo -NoProfile -File ./run.ps1` passed all six
+  integration tests, including five native offline updates; three live-feed
+  scenarios remained explicitly opted out. Build and formatting passed.
+  The wrapper selected installed Pester 5.9.1. Original assertions, coverage
+  thresholds and deadlines remain unchanged.
+- The native provider fixture uses alphanumeric labels (`preview1`,
+  `preview2`, `preview3`) as explicitly accepted for Gerber/Nova. It retains
+  prerelease progression, same-base stable promotion, numeric upgrades and
+  four-component versions, with exact-target, license, WhatIf, inactive-target
+  and registration-state assertions unchanged. Semantic comparison tests still
+  cover dotted labels; native installation does not claim to accept them.
+- Final-built public PMU Gallery qualification on 2026-10-27 updated Gerber
+  `0.1.1-preview02` to exact `0.1.1-preview03` without Force in a disposable
+  CurrentUser root. WhatIf passed, all 150 existing dependency files retained
+  content/timestamps and Gerber was not loaded. All 1,286 monitored workstation
+  entries remained unchanged, and the fixture was removed after verification.
+  This is not workstation deployment, published-PMU delivery or hosted evidence.
+
+`tests/NativeWorkerLifetime.Tests.ps1` permanently covers five actual-process
+cases: no GO after approver death, death while waiting for the original lock,
+recovery winning the handoff gap, replacement winning that gap and an orphan
+writer retaining the original lock until completion. Provider initialization,
+selected-installation checks and native writing are simulated in these tests;
+real parent identity, lock acquisition, journal tokens and protocol remain
+active. Run them with `Invoke-NovaTest -TagFilter PMUWorkerLifetime`.
+Filtered success does not satisfy whole-project coverage.
+
+The official PowerShellGet 3.0.23-beta23 adapter was inspected and probed only
+in a disposable qualification child. Its exact same-base dotted update left
+the previous prerelease installed. A repository-cache timestamp changed while
+content remained identical. It is not a qualified replacement or a new runtime
+dependency. No third-party internals were patched.
+
+`Receive-PMUChildProcess` drains stdout and stderr concurrently before waiting
+for exit. Its ordinary deadline remains 45 seconds. The native integration
+fixture performs five sequential isolated updates (about 68 seconds measured)
+and explicitly receives a 150-second total budget; its functional assertions
+are unchanged. Registration snapshots sort by name to avoid treating enumeration
+order as a configuration change; the raw store-byte preservation check remains.
+
+The native transition still requires appropriate provider/lifecycle and
+exact-revision hosted matrix evidence. Historical G-4A3 closure and passing unit
+tests do not establish unexecuted platform qualification.
+
+The intermittent native initialization failure was captured and corrected.
+Two of four retained diagnostic samples failed with the original worker
+exception `PMU.RepositoryChanged`: the owned store contained PSGallery and the
+approved source when `Get-NativeRepositorySnapshot` required exactly one.
+PowerShellGet could lazily populate PSGallery during approved-source
+registration, after PMU's initial owned-store cleanup. Seeding it before that
+cleanup did not reproduce the late-registration condition.
+
+Two permanent `Initialize-NativeRepository` regressions cover late default
+population and post-registration normalization failure before trust. Against
+the unchanged implementation, the focused selection passed 37 cases and failed
+these two intended cases; after normalization immediately following missing-source
+registration, all 39 passed. Exact single-source/name/URI checks and independent
+trust consent remain intact. Cleanup is restricted to the operation-owned store;
+no user registration, provider internals, Force option or install fallback changed.
+Four post-fix diagnostic samples passed all 20 native updates, followed by the
+ordinary full wrapper and final-built Gallery acceptance above.
+
+A separate deterministic regression proved that initial native repository
+enumeration errors were suppressed and could allow cleanup against partial
+results. The mirrored `Initialize-NativeRepositoryStore` test failed before
+the fix and passes with terminating enumeration errors, asserting no removal.
+All 34 focused repository cases pass; that filtered run intentionally does not
+satisfy whole-source coverage. The complete run supplies the coverage above.
+That enumeration correction is separate from the late-default fix above.
+
+A separate ordinary run timed out waiting 30 seconds for an AlternateFeed
+concurrency fixture to become ready. An isolated two-process diagnostic reached
+both readiness signals in about 1.455 seconds and preserved the original
+Installed/AlreadyInstalled assertions; the five focused process cases and a
+later complete run passed. The timeout's cause remains unknown. Neither its
+deadline nor the assertions were loosened, and a passing rerun is not a fix.
+
+The all-file Code Health review and readable formatting do not establish
+complete SIG compliance. Structural steps separated worker-operation transfer,
+recovery-journal identity/progress, result identity/outcome, consumer-repository
+selection, owned-registration preparation/verification and planning-target
+selection. Further steps separated receipt lifecycle/binding, installation
+observations, planning state, manifest/inventory reading, update decisions,
+provider parameters, recovery identity, worker bootstrap/environment mapping
+and stdin payload encoding. Final steps separated shared plan-source projection,
+observed native identity and selected snapshot validation. Flat protocol ordering,
+types, privacy and copy semantics remain asserted. Worker input-stream failure,
+selected identity/source/AlreadyInstalled and successful transport-lifecycle
+characterization passed before the relevant extractions. Assertions were
+preserved; cleanup still precedes error translation.
+
+The refreshed review covers 554 existing authored PowerShell files: 548 score
+10.0, five are unscorable and the unchanged five-parameter public API scores
+9.68 under its accepted exception. Across 224 source functions, no body exceeds
+the repository's 15-line goal.
+The conservative count includes declarations, parameters and braces but
+excludes blank/comment-only lines; 80 whole declarations remain at 16-22 lines.
+No source unit exceeds four branch points under the screen's count of
+conditional alternatives, switch arms, loops, catches and Boolean decisions.
+These are manual review measurements, not CodeScene metrics or new exceptions.
+
+The whole-declaration target remains unmet despite compliance with the
+repository's body-based rule and the measured scores above. A requested scope
+decision was unavailable; no additional exception was assumed. Normal full
+quality readiness is therefore not claimed. The native defect diagnosis and
+the three remaining body-size refactorings are complete; the stricter manual
+target and broader platform/lifecycle qualification remain open.
 
 ### Phase 1 skips and platform evidence
 

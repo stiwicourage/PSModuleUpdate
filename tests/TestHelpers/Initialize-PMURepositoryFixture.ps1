@@ -2,8 +2,12 @@ function Initialize-PMURepositoryFixture {
     param([string]$Root)
     $root = Join-Path $Root ([guid]::NewGuid().ToString('N'))
     $fixture = [pscustomobject]@{
-        Root = $root; Modules = Join-Path $root 'Modules'; Data = Join-Path $root 'data'
-        Name = "PmuTarget$([guid]::NewGuid().ToString('N'))"; Guid = [guid]::NewGuid(); Module = $null
+        Root = $root
+        Modules = Join-Path $root 'Modules'
+        Data = Join-Path $root 'data'
+        Name = "PmuTarget$([guid]::NewGuid().ToString('N'))"
+        Guid = [guid]::NewGuid()
+        Module = $null
         Calls = [Collections.Generic.List[object]]::new()
         Repositories = Get-PMURepositoryEntry
     }

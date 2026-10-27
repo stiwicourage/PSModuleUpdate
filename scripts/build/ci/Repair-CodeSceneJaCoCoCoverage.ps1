@@ -50,8 +50,7 @@ function Repair-CodeSceneJaCoCoCoverageFile {
         $writer = [System.Xml.XmlWriter]::Create($Path, $settings)
         try {
             $document.Save($writer)
-        }
-        finally {
+        } finally {
             $writer.Dispose()
         }
 

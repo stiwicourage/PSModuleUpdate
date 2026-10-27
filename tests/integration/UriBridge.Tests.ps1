@@ -34,8 +34,9 @@ Describe 'PMU temporary URI public contract' -Tag 'PMUUriBridge' {
             { Assert-OwnedRepositoryConfiguration $uriFixture.Entries[$lease.Name] $lease.Receipt } |
                 Should -Throw -ErrorId 'PMU.RepositoryRecoveryRequired*'
             $uriFixture.Entries[$lease.Name].ApiVersion = 'V3'
+        } finally {
+            Close-RepositoryTransport $lease
         }
-        finally { Close-RepositoryTransport $lease }
     }
     It 'does not register or rediscover an unregistered URI during Install WhatIf' {
         $plan = Get-PSModuleUpdate -Module $repositoryFixture.Module -RepositoryUri $uriFixture.Source.Uri -Policy @{ Channel = 'IncludePrerelease' }
@@ -63,7 +64,9 @@ Describe 'PMU temporary URI public contract' -Tag 'PMUUriBridge' {
         $credential = [pscredential]::new('bridge-fixture-user', [securestring]::new())
         $plan = Get-PSModuleUpdate -Module $repositoryFixture.Module -RepositoryUri $uriFixture.Source.Uri -Credential $credential -Policy @{ Channel = 'IncludePrerelease' }
         $result = $plan | Install-PSModuleUpdate -Credential $credential -Confirm:$false -TrustRepository
-        foreach ($call in $repositoryFixture.Calls) { [object]::ReferenceEquals($call.Credential, $credential) | Should -BeTrue }
+        foreach ($call in $repositoryFixture.Calls) {
+            [object]::ReferenceEquals($call.Credential, $credential) | Should -BeTrue
+        }
         @($repositoryFixture.Calls.Repository | Select-Object -Unique).Count | Should -Be 2
         ConvertTo-Json @($plan, $result) -Depth 12 | Should -Not -Match 'bridge-fixture-user|PSCredential|pmu-uri-'
         Should -Invoke Register-PSResourceRepository -Times 2 -ParameterFilter { -not $CredentialInfo }
@@ -76,7 +79,13 @@ Describe 'PMU temporary URI public contract' -Tag 'PMUUriBridge' {
         Should -Invoke Find-ProviderResource -Times 0
     }
     It 'rejects credentials embedded in registered source metadata before using it' {
-        $uriFixture.Entries['Leaky'] = [pscustomobject]@{ Name = 'Leaky'; Uri = [uri]'https://user:fixture-secret@transport.invalid/v3/index.json'; Trusted = $false; ApiVersion = 'V3'; Priority = 50 }
+        $uriFixture.Entries['Leaky'] = [pscustomobject]@{
+            Name = 'Leaky'
+            Uri = [uri]'https://user:fixture-secret@transport.invalid/v3/index.json'
+            Trusted = $false
+            ApiVersion = 'V3'
+            Priority = 50
+        }
         $failure = { Get-PSModuleUpdate -Module $repositoryFixture.Module -Repository Leaky } | Should -Throw -ErrorId 'PMU.InvalidRequest*' -PassThru
         "$failure" | Should -Not -Match 'fixture-secret|user:'
         Should -Invoke Register-PSResourceRepository -Times 0

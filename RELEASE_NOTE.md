@@ -22,6 +22,13 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
 
 ### Changed
 
+- Existing-module updates now use native `Update-Module` without Force or an
+  install fallback. Exact target/source, consent and restart requirements stay
+  in effect. Prerelease updates use native-compatible labels such as `preview03`;
+  dotted labels such as `preview.3` are not supported by the native installer.
+  Temporary repository setup also handles automatically registered defaults
+  without changing your repository settings.
+
 ### Deprecated
 
 ### Removed

@@ -2,6 +2,10 @@
 
 Thank you for contributing. Keep changes small, reviewable, and easy to validate.
 
+The unreleased native-update transition is not covered by historical G-4A3
+acceptance. Read the [current qualification and native provider scope](docs/architecture/TESTING.md#native-update-transition)
+before changing its provider, lifecycle tests, or release requirements.
+
 G-4A3's [accepted closure](docs/architecture/G4A3_CLOSURE.md) is separate from future platform
 qualification. Review the proposed [cross-platform strategy](docs/architecture/CROSS_PLATFORM_TESTING.md)
 before implementing testing infrastructure; its matrices and roadmap are not

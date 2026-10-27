@@ -36,14 +36,14 @@ function Get-TextFileFormattingTargetFileList {
         [Parameter(Mandatory)][string]$ProjectRoot
     )
 
-    $rootFileList = @(Get-ChildItem -LiteralPath $ProjectRoot -Force -File | Where-Object {Test-TextFileFormattingCandidate -FileInfo $_})
+    $rootFileList = @(Get-ChildItem -LiteralPath $ProjectRoot -Force -File | Where-Object { Test-TextFileFormattingCandidate -FileInfo $_ })
     $scopedFileList = foreach ($relativePath in @('.github', 'docs', 'scripts', 'src', 'tests')) {
         $directoryPath = Join-Path $ProjectRoot $relativePath
         if (-not (Test-Path -LiteralPath $directoryPath -PathType Container)) {
             continue
         }
 
-        Get-ChildItem -LiteralPath $directoryPath -Recurse -Force -File | Where-Object {Test-TextFileFormattingCandidate -FileInfo $_}
+        Get-ChildItem -LiteralPath $directoryPath -Recurse -Force -File | Where-Object { Test-TextFileFormattingCandidate -FileInfo $_ }
     }
 
     return @($rootFileList + $scopedFileList | Sort-Object FullName -Unique)
@@ -119,7 +119,7 @@ if ($MyInvocation.InvocationName -ne '.') {
     if (-not $result.IsValid) {
         $message = @(
             'Text file ending violations were found. Each tracked text file must end immediately after exactly one newline terminator, with no blank spacer lines at the bottom.'
-            @($result.Violations | ForEach-Object {"- $_"})
+            @($result.Violations | ForEach-Object { "- $_" })
         ) -join [Environment]::NewLine
 
         throw $message
