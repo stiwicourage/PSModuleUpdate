@@ -28,6 +28,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Linux worker ownership checks no longer reject a live approving process
+  because of inconsistent cross-process timestamps. Exact PID-reuse protection
+  remains enabled. Legacy Linux repository receipts require explicit recovery
+  rather than automatic cleanup.
+- CI dependency provisioning initializes a missing default PSGallery
+  registration before downloading and removes only a registration it explicitly
+  created afterward, preserving existing sources and trust. Package downloads have
+  three bounded attempts against the same source, destination and pinned
+  versions; exhausted downloads and isolated-import failures still fail CI
+  and clean up the owned dependency directory.
 - Forward the complete planned target version unchanged at the provider
   boundary instead of wrapping it in NuGet range brackets.
   Bracketed prerelease targets could be discovered but failed during staging

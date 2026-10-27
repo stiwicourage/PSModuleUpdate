@@ -35,6 +35,12 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
 
 ### Fixed
 
+- Linux updates no longer falsely reject a live approving process. Legacy
+  Linux repository receipts require
+  [authorized manual review](docs/architecture/RECOVERY.md#interrupted-repository-transport)
+  rather than automatic cleanup.
+- Contributor CI setup handles a missing Gallery registration and temporary
+  package download failures without changing the selected dependency versions.
 - Updates now request the exact selected version in the form accepted by the
   download provider, including prereleases such as `0.1.1-preview01`.
   Dependencies must still resolve successfully before installation can finish.

@@ -83,6 +83,16 @@ named receipt and registration, stop concurrent registry writers, and obtain
 authorized manual review of that individual registration. Never reset the
 provider XML store or bulk-remove PMU-prefixed names.
 
+Linux process identities now use the kernel's stable start counter instead of
+cross-process .NET timestamps. A receipt written by the previous Linux
+implementation cannot prove its owner's identity, even after that process
+exits. PMU therefore stops with `PMU.RepositoryRecoveryRequired` rather than
+automatically deleting the registration. Preserve that individual receipt and
+registration for the authorized manual review described above. There is no
+public receipt-repair command; a restart, fresh plan, or approved installation
+attempt does not itself migrate these receipts. This is separate from
+installation-journal recovery.
+
 ## When recovery cannot finish
 
 Errors such as `PMU.RecoveryRequired`, `PMU.RecoveryFailed`, or

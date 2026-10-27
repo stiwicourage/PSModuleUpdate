@@ -18,18 +18,24 @@ function Get-CiModuleInstallParameter {
         [string]$ModuleRoot
     )
 
-    $parameter = @{
+    $parameter = Get-CiModuleSaveParameter -Name $Name -ModuleRoot $ModuleRoot
+    if ($script:PinnedVersion.ContainsKey($Name)) {
+        $parameter['RequiredVersion'] = $script:PinnedVersion[$Name]
+    }
+
+    return $parameter
+}
+
+function Get-CiModuleSaveParameter {
+    param([string]$Name, [string]$ModuleRoot)
+
+    return @{
         Name = $Name
         Repository = 'PSGallery'
         Path = $ModuleRoot
         Force = $true
         ErrorAction = 'Stop'
     }
-    if ($script:PinnedVersion.ContainsKey($Name)) {
-        $parameter['RequiredVersion'] = $script:PinnedVersion[$Name]
-    }
-
-    return $parameter
 }
 
 function Save-CiPowerShellModule {
@@ -40,18 +46,79 @@ function Save-CiPowerShellModule {
 
     $owner = New-CiDependencyRoot -Path $ModuleRoot
     try {
-        foreach ($moduleName in $Name) {
-            $parameter = Get-CiModuleInstallParameter -Name $moduleName -ModuleRoot $owner.Path
-            Save-Module @parameter
-        }
-        & (Get-Process -Id $PID).Path -NoLogo -NoProfile -File (Join-Path $PSScriptRoot 'CiDependencyProbe.ps1') -ModuleRoot $owner.Path
-        if ($LASTEXITCODE -ne 0) {
-            throw 'Isolated dependency closure validation failed.'
-        }
+        Save-CiModuleSet -Name $Name -ModuleRoot $owner.Path
         return $owner
     } catch {
         Remove-CiDependencyRoot -Owner $owner
         throw
+    }
+}
+
+function Save-CiModuleSet {
+    param([string[]]$Name, [string]$ModuleRoot)
+    $registered = Open-CiGallery
+    try {
+        $null = Assert-CiGallery
+        foreach ($moduleName in $Name) {
+            Save-CiModuleDownload (Get-CiModuleInstallParameter -Name $moduleName -ModuleRoot $ModuleRoot)
+        }
+        Assert-CiDependencyClosure -ModuleRoot $ModuleRoot
+    } finally {
+        Close-CiGallery -Registered $registered
+    }
+}
+
+function Open-CiGallery {
+    param()
+    $repository = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
+    if ($repository) { return $false }
+    Register-CiGallery
+    return $true
+}
+
+function Register-CiGallery {
+    param()
+    Register-PSRepository -Default -ErrorAction Stop
+}
+
+function Assert-CiGallery {
+    param()
+    $repository = Get-PSRepository -Name PSGallery -ErrorAction Stop
+    if ($repository.SourceLocation.TrimEnd('/') -cne 'https://www.powershellgallery.com/api/v2') {
+        throw 'CI dependencies require the official PSGallery repository.'
+    }
+    return $repository
+}
+
+function Close-CiGallery {
+    param([bool]$Registered)
+    if (-not $Registered) { return }
+    $repository = Assert-CiGallery
+    if ($repository.InstallationPolicy -cne 'Untrusted') {
+        throw 'The temporary PSGallery registration changed; refusing to remove it.'
+    }
+    Unregister-PSRepository -Name PSGallery -ErrorAction Stop
+}
+
+function Save-CiModuleDownload {
+    param([hashtable]$Parameter)
+    foreach ($attempt in 1..3) {
+        try {
+            $null = Save-Module @Parameter
+            return
+        } catch {
+            if ($attempt -eq 3) { throw }
+            Write-Warning "CI download for '$($Parameter.Name)' failed (attempt $attempt/3); retrying the same Gallery request."
+            Start-Sleep -Seconds $attempt
+        }
+    }
+}
+
+function Assert-CiDependencyClosure {
+    param([string]$ModuleRoot)
+    & (Get-Process -Id $PID).Path -NoLogo -NoProfile -File (Join-Path $PSScriptRoot 'CiDependencyProbe.ps1') -ModuleRoot $ModuleRoot
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Isolated dependency closure validation failed.'
     }
 }
 

@@ -72,6 +72,14 @@ PSResourceGet repository state is preserved by the provider fixtures, not by
 assuming that `HOME` or `PSModulePath` redirects registrations. Unexpected
 skips and incomplete XML/log/runtime evidence fail the lane.
 
+Dependency provisioning checks that PSGallery points to its official endpoint.
+If explicit native default registration is needed, it is removed afterward only
+if its source and trust remain unchanged; existing registrations are not changed.
+Each package download has at most three attempts with the same
+source, version selection and owned destination. Exhausted retries or a failed
+isolated import probe still fail provisioning and remove its owned dependency
+directory.
+
 The separate `Run Tests` workflow also saves dependencies to an owned temporary
 root. Each PowerShell consumer step uses the install step's `moduleRoot` output
 to set an isolated `PSModulePath`; installed modules and imports do not carry
