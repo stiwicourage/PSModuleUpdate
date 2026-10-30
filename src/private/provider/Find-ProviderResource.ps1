@@ -4,14 +4,7 @@ function Find-ProviderResource {
         [pscredential]$Credential
     )
 
-    $parameters = Get-ProviderInvocationParameter
-    $parameters.Name = $Request.Name
-    $parameters.Repository = $Request.Repository
-    $parameters.Prerelease = $Request.Prerelease
-    $parameters.Version = $Request.Version ? $Request.Version : '*'
-    if ($Credential) {
-        $parameters.Credential = $Credential
-    }
+    $parameters = Get-ProviderDiscoveryParameter $Request $Credential
     try {
         Microsoft.PowerShell.PSResourceGet\Find-PSResource @parameters
     } catch {

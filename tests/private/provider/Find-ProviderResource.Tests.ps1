@@ -49,4 +49,26 @@ Describe 'Find-ProviderResource' -Tag 'PMU' {
                 Prerelease = $false
             } $null } | Should -Throw -ErrorId 'PMU.DiscoveryFailed'
     }
+    Context 'provider output preservation' {
+        BeforeEach {
+            $script:discoveryRequest = @{
+                Name = 'FixtureModule'
+                Repository = 'OwnedFeed'
+                Version = $null
+                Prerelease = $false
+            }
+        }
+        It 'returns the original provider objects in order' {
+            $resources = @([pscustomobject]@{ Version = '1.0.0' }, [pscustomobject]@{ Version = '2.0.0' })
+            Mock Find-PSResource { $resources }
+            $actual = @(Find-ProviderResource $script:discoveryRequest $null)
+            $actual.Count | Should -Be 2
+            [object]::ReferenceEquals($actual[0], $resources[0]) | Should -BeTrue
+            [object]::ReferenceEquals($actual[1], $resources[1]) | Should -BeTrue
+        }
+        It 'preserves an empty successful provider result' {
+            Mock Find-PSResource { @() }
+            @(Find-ProviderResource $script:discoveryRequest $null).Count | Should -Be 0
+        }
+    }
 }
