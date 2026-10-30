@@ -8,6 +8,9 @@ function Find-ProviderResource {
     try {
         Microsoft.PowerShell.PSResourceGet\Find-PSResource @parameters
     } catch {
+        if (($_.FullyQualifiedErrorId -split ',', 2)[0] -ceq 'PackageNotFound') {
+            Write-PMUError 'PMU.PackageNotFound' 'The requested package was not found in the selected repository.'
+        }
         Write-ProviderError $_ 'PMU.DiscoveryFailed'
     }
 }

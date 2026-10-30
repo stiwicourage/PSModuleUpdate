@@ -4,7 +4,7 @@ external help file: PSModuleUpdate-Help.xml
 HelpUri: ''
 Locale: en-US
 Module Name: PSModuleUpdate
-ms.date: 10.23.2026
+ms.date: 10.30.2026
 PlatyPS schema version: 2024-05-01
 title: Get-PSModuleUpdate
 ---
@@ -252,6 +252,13 @@ Requires PowerShell 7.4 or later and the qualified PSResourceGet 1.2.0 baseline.
 Missing provider setup, unavailable packages, authentication failures, unsafe
 paths, and identity mismatches are terminating structured PMU errors, not
 UpToDate results. Credentials must be supplied independently to installation.
+
+When no eligible package exists in the explicitly selected repository,
+discovery terminates with the stable error ID `PMU.PackageNotFound` and returns
+no update plan. This includes the provider's structured `PackageNotFound`
+failure. PMU does not query another feed or substitute another version.
+Other discovery, authentication and permission failures retain their distinct
+PMU errors; raw provider diagnostics are withheld to protect credentials.
 
 PSResourceGet 1.2.0 Find/Save/Install expose repository names, not a direct URI
 parameter. PMU serializes its own registration changes with a per-user

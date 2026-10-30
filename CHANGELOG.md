@@ -16,6 +16,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Normalize PSResourceGet's structured `PackageNotFound` discovery error to
+  terminating `PMU.PackageNotFound`, including command-suffixed provider IDs.
+  Missing packages produce no update plan or fallback query; provider
+  diagnostics remain withheld. Unrelated discovery, authentication and
+  permission failures retain their existing error contracts.
+
 ### Security
 
 ## [0.2.0] - 2026-10-27

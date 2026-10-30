@@ -49,7 +49,7 @@ Describe 'Find-ProviderResource' -Tag 'PMU' {
                 Prerelease = $false
             } $null } | Should -Throw -ErrorId 'PMU.DiscoveryFailed'
     }
-    Context 'provider output preservation' {
+    Context 'provider boundary outcomes' {
         BeforeEach {
             $script:discoveryRequest = @{
                 Name = 'FixtureModule'
@@ -69,6 +69,33 @@ Describe 'Find-ProviderResource' -Tag 'PMU' {
         It 'preserves an empty successful provider result' {
             Mock Find-PSResource { @() }
             @(Find-ProviderResource $script:discoveryRequest $null).Count | Should -Be 0
+        }
+        It 'normalizes structured <ProviderId> without exposing provider diagnostics' -Tag 'PMUPackageNotFound' -ForEach @(
+            @{ ProviderId = 'PackageNotFound' }
+            @{ ProviderId = 'PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource' }
+        ) {
+            Mock Find-PSResource { throw (Get-PMUTestProviderFailure $ProviderId) }
+            $failure = { Find-ProviderResource $script:discoveryRequest $null } |
+                Should -Throw -ErrorId 'PMU.PackageNotFound' -PassThru
+            ($failure | Out-String) | Should -Not -Match 'provider-secret-fixture|credential-user-fixture'
+            ($failure.TargetObject | ConvertTo-Json) | Should -Not -Match 'provider-secret-fixture|credential-user-fixture'
+            Should -Invoke Find-PSResource -Times 1 -Exactly -ParameterFilter { $ErrorAction -eq 'Stop' -and $Repository[0] -eq 'OwnedFeed' }
+        }
+        It 'retains <ExpectedId> for unrelated structured ID <ProviderId>' -Tag 'PMUPackageNotFound' -ForEach @(
+            @{ ProviderId = 'OtherMissingResource'; Category = 'ObjectNotFound'; Message = 'PackageNotFound: no package found'; ExpectedId = 'PMU.DiscoveryFailed' }
+            @{ ProviderId = 'PrefixPackageNotFound'; Category = 'ObjectNotFound'; Message = 'no package found'; ExpectedId = 'PMU.DiscoveryFailed' }
+            @{ ProviderId = 'PackageNotFoundExtra'; Category = 'ObjectNotFound'; Message = 'no package found'; ExpectedId = 'PMU.DiscoveryFailed' }
+            @{ ProviderId = 'packagenotfound'; Category = 'ObjectNotFound'; Message = 'no package found'; ExpectedId = 'PMU.DiscoveryFailed' }
+            @{ ProviderId = 'OtherError,PackageNotFound'; Category = 'ObjectNotFound'; Message = 'no package found'; ExpectedId = 'PMU.DiscoveryFailed' }
+            @{ ProviderId = 'NetworkFailure'; Category = 'ConnectionError'; Message = 'feed offline'; ExpectedId = 'PMU.DiscoveryFailed' }
+            @{ ProviderId = 'AuthenticationFailure'; Category = 'SecurityError'; Message = '401 authentication failed'; ExpectedId = 'PMU.AuthenticationFailed' }
+            @{ ProviderId = 'PermissionFailure'; Category = 'PermissionDenied'; Message = 'permission denied'; ExpectedId = 'PMU.PermissionDenied' }
+        ) {
+            Mock Find-PSResource { throw (Get-PMUTestProviderFailure $ProviderId "$Message provider-secret-fixture" $Category) }
+            $failure = { Find-ProviderResource $script:discoveryRequest $null } |
+                Should -Throw -ErrorId $ExpectedId -PassThru
+            ($failure | Out-String) | Should -Not -Match 'provider-secret-fixture'
+            Should -Invoke Find-PSResource -Times 1 -Exactly -ParameterFilter { $ErrorAction -eq 'Stop' }
         }
     }
 }

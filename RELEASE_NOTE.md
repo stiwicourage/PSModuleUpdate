@@ -35,6 +35,9 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
 
 ### Fixed
 
+- Update checks now report `PMU.PackageNotFound` when the selected repository
+  has no matching package. No update plan is returned, and PMU does not try
+  another feed or expose raw provider diagnostics.
 - PMU now declares its qualified PSResourceGet 1.2.0 runtime dependency.
 - Linux updates no longer falsely reject a live approving process. Legacy
   Linux repository receipts require
