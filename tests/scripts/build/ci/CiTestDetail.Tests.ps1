@@ -45,4 +45,40 @@ Describe 'Nova detailed output evidence' -Tag 'BuildTooling' {
             })
         { Assert-CiTestDetail -Summary $summary -Detail $detail -OperatingSystem 'macOS' } | Should -Throw '*skip*'
     }
+
+    Context 'Exact-target inspection native fixture' {
+        BeforeEach {
+            $script:skipSummary = @{
+                Total = 1
+                Passed = 0
+                Failed = 0
+                Skipped = 1
+            }
+            $script:skipDetail = @(@{
+                    File = 'tests/public/Get-PSModuleUpdateTargetManifest.Integration.Tests.ps1'
+                    Name = 'inspects an offline exact package, rejects changed MinimumGerberVersion, then installs unchanged content'
+                    Result = 'Skipped'
+                })
+        }
+
+        It 'accepts the classified native-fixture skip on <_>' -ForEach @('Windows', 'Linux') {
+            $operatingSystem = $_
+            {
+                Assert-CiTestDetail -Summary $script:skipSummary -Detail $script:skipDetail -OperatingSystem $operatingSystem
+            } | Should -Not -Throw
+        }
+
+        It 'rejects the same skip on the qualified macOS platform' {
+            {
+                Assert-CiTestDetail -Summary $script:skipSummary -Detail $script:skipDetail -OperatingSystem 'macOS'
+            } | Should -Throw '*Unexpected skip*'
+        }
+
+        It 'rejects a different <_> identity even on an excluded platform' -ForEach @('File', 'Name') {
+            $script:skipDetail[0][$_] = 'unclassified'
+            {
+                Assert-CiTestDetail -Summary $script:skipSummary -Detail $script:skipDetail -OperatingSystem 'Windows'
+            } | Should -Throw '*Unexpected skip*'
+        }
+    }
 }

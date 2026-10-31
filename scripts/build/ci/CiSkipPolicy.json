@@ -6,6 +6,12 @@
     "reason": "The licensed offline provider fixture is currently qualified only on macOS; non-macOS qualification remains open."
   },
   {
+    "file": "tests/public/Get-PSModuleUpdateTargetManifest.Integration.Tests.ps1",
+    "name": "inspects an offline exact package, rejects changed MinimumGerberVersion, then installs unchanged content",
+    "operatingSystems": ["Windows", "Linux"],
+    "reason": "Exact-target inspection uses the same macOS-qualified offline native provider fixture; Windows/Linux native-fixture qualification remains open."
+  },
+  {
     "file": "tests/private/locking/Get-WindowsDirectoryDescriptor.Tests.ps1",
     "name": "reads current-user ACL metadata from a disposable directory",
     "operatingSystems": ["Linux", "macOS"],
