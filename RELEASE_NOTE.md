@@ -7,6 +7,11 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
 
 ### Added
 
+- Inspect an approved exact target with `Get-PSModuleUpdateTargetManifest`
+  before deciding to install. Its `Manifest` hashtable includes full
+  PrivateData without loading or running the target. Installation rejects
+  manifest content changed after inspection, even under the same version;
+  obtain a fresh plan to approve different content.
 - Plan module updates with `Get-PSModuleUpdate`, preview them with
   `Install-PSModuleUpdate -WhatIf`, and explicitly approve installation.
 - Update independent installed modules without embedding PMU or requiring a PMU

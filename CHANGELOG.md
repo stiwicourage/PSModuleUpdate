@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Add `Get-PSModuleUpdateTargetManifest` for exact-candidate manifest inspection
+  from an unmodified live plan, using owned staging without installation or
+  target import. Complete manifest PrivateData is returned as data only.
+  An internal manifest binding rejects changed content during later install
+  staging, including same-version republishing, before installed-file mutation.
+  Per-call credentials, trust/license consent, source binding and cleanup remain
+  enforced. Planning and install WhatIf remain acquisition-free.
+
 ### Changed
 
 ### Deprecated

@@ -4,7 +4,7 @@ external help file: PSModuleUpdate-Help.xml
 HelpUri: ''
 Locale: en-US
 Module Name: PSModuleUpdate
-ms.date: 10.23.2026
+ms.date: 10.31.2026
 PlatyPS schema version: 2024-05-01
 title: Install-PSModuleUpdate
 ---
@@ -213,6 +213,25 @@ requirements independently. Outcomes are Installed, AlreadyInstalled, Cancelled,
 and WhatIf. Provider success alone never produces Installed.
 
 ## NOTES
+
+An optional prior `Get-PSModuleUpdateTargetManifest` call privately binds the
+inspected manifest to this same live plan. Staging compares the complete
+manifest content before installed-file mutation and rejects a difference with
+`PMU.TargetManifestChanged`, including same-version republishing. Obtain a fresh
+plan and inspect again before approving different content. Editing the returned
+manifest hashtable cannot change that binding. Without prior inspection,
+installation retains its existing behavior; `-WhatIf` does not stage/download.
+
+After `VerificationStatus` is `Verified`, `InstalledPath` is the exact installed
+target **directory**. `ModuleName`, `ModuleGuid`, `Scope`, `InstalledVersion`,
+and `TargetVersion` identify its verified module, selected scope, observed
+version and approved target. Construct the exact manifest path with
+`Join-Path $result.InstalledPath "$($result.ModuleName).psd1"`.
+There is no `InstalledManifestPath` property on installation results.
+
+Credentials must be supplied again for each operation. Missing required
+credentials and provider authentication failures use `PMU.AuthenticationFailed`;
+repository trust and license opt-ins remain separate prerequisites.
 
 Planning and WhatIf never perform recovery writes. After native approval, an
 exclusive OS handle lock covers revalidation, staging, backup, replacement,

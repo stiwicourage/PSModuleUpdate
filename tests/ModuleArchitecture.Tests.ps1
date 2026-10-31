@@ -5,7 +5,7 @@ Describe 'PMU architecture' -Tag 'PMU' {
     }
     It 'has exactly the approved public command files' {
         @(Get-ChildItem "$root/src/public" -Filter '*.ps1').BaseName |
-            Sort-Object | Should -Be @('Get-PSModuleUpdate', 'Install-PSModuleUpdate')
+            Sort-Object | Should -Be @('Get-PSModuleUpdate', 'Get-PSModuleUpdateTargetManifest', 'Install-PSModuleUpdate')
     }
     It 'uses one matching top-level function per source file and no nested functions' {
         $files.Count | Should -BeGreaterThan 0

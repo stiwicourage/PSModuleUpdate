@@ -44,4 +44,18 @@ Describe 'Initialize-StagedPackage' -Tag 'PMU', 'PMUCoverageFollowUp' {
         $null = Initialize-StagedPackage $operation
         Test-Path "$($operation.StageRoot)/leftover.txt" | Should -BeFalse
     }
+
+    It 'rejects an inspected manifest change before provider installation' -Tag 'PMUTargetManifest' {
+        $operation = Initialize-PMUTestOperation $TestDrive
+        $operation.Record | Add-Member InspectedManifestHash ('0' * 64)
+        Mock Save-ProviderResource {
+            $null = Initialize-PMUTestPackage $Operation.StageRoot '2.0.0-preview.2'
+        }
+        Mock Install-ProviderResource {
+        }
+        {
+            Initialize-StagedPackage $operation
+        } | Should -Throw -ErrorId 'PMU.TargetManifestChanged'
+        Should -Invoke Install-ProviderResource -Times 0
+    }
 }

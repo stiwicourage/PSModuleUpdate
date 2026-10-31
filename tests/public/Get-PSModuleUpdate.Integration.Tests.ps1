@@ -3,8 +3,8 @@ BeforeAll {
     Import-Module "$root/dist/PSModuleUpdate/PSModuleUpdate.psd1" -Force
 }
 Describe 'Get-PSModuleUpdate built surface' -Tag 'Integration', 'PMUHelp' {
-    It 'exports only the two approved commands and preserves the planning parameter set' {
-        @(Get-Command -Module PSModuleUpdate).Name | Sort-Object | Should -Be @('Get-PSModuleUpdate', 'Install-PSModuleUpdate')
+    It 'exports only the approved commands and preserves the planning parameter set' {
+        @(Get-Command -Module PSModuleUpdate).Name | Sort-Object | Should -Be @('Get-PSModuleUpdate', 'Get-PSModuleUpdateTargetManifest', 'Install-PSModuleUpdate')
         $command = Get-Command Get-PSModuleUpdate -Module PSModuleUpdate
         $command.ParameterSets.Name | Sort-Object | Should -Be @('ByModule', 'ByRepositoryUri')
         $command.Parameters['Module'].ParameterType | Should -Be ([System.Management.Automation.PSModuleInfo])

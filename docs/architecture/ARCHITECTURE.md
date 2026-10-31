@@ -59,9 +59,31 @@ repository:
 
 ## Product boundary
 
+### Exact-target manifest inspection
+
+`Get-PSModuleUpdateTargetManifest` accepts only an unmodified live plan in the
+same loaded PMU instance. It rechecks the exact repository/candidate and current
+installation identity, then uses the existing native acquisition and staged
+package validation adapters in a unique CurrentUser-owned inspection workspace.
+Its isolated worker stages only: it does not enter the native mutation lease,
+install the package, import the target, or execute target scripts. Credentials
+travel over the existing stdin transport and are not retained in the live plan.
+Owned repository registrations and workspace files are cleaned on success/failure.
+
+The output wraps the safely imported manifest hashtable and sanitized exact
+identity fields. PMU does not interpret consumer-specific PrivateData.
+The live-plan registry privately stores a SHA256 binding of the inspected
+manifest bytes, separately from the unchanged public plan. That binding is
+copied into the native installation worker's private record and checked during
+staged identity validation before provider mutation. Different content is
+rejected even when name, GUID and semantic version are unchanged; reinspection
+of changed content requires a fresh plan. Uninspected plans and acquisition-free
+planning/install WhatIf retain their existing contracts.
+
 PMU owns:
 
-- the `Get-PSModuleUpdate` and `Install-PSModuleUpdate` public cmdlets
+- the `Get-PSModuleUpdate`, `Get-PSModuleUpdateTargetManifest`, and
+  `Install-PSModuleUpdate` public cmdlets
 - full-version identity, release selection, plan validation, and stale-plan
   detection
 - explicit CurrentUser and AllUsers scope handling

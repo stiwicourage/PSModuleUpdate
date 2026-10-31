@@ -47,6 +47,37 @@ After reviewing the plan, install it:
 $update | Install-PSModuleUpdate
 ```
 
+### Inspect the exact target manifest
+
+Consumers that must examine candidate metadata before approval can use the same
+unmodified live plan:
+
+```powershell
+$target = $update | Get-PSModuleUpdateTargetManifest
+$target.Manifest.PrivateData
+$update | Install-PSModuleUpdate -WhatIf
+```
+
+Inspection downloads only the exact planned version from its bound repository.
+It safely imports manifest **data**, not the module, into a hashtable; it never
+executes the target's RootModule or scripts, installs it, or interprets
+consumer-specific metadata. The result exposes `Manifest` (including complete
+`PrivateData`), `ModuleName`, `ModuleGuid`, exact semantic `Version`, and sanitized
+`RepositoryUri`.
+
+The public plan is unchanged. PMU privately binds the inspected manifest bytes
+to that live plan. Installation stages again and rejects differing manifest
+content with `PMU.TargetManifestChanged` before changing installed files,
+including same-version republishing. Editing the returned hashtable cannot
+change the binding. Obtain a fresh plan to approve changed content; even
+whitespace changes require reinspection. Uninspected plans retain their existing
+installation behavior. Planning and install `-WhatIf` remain download-free.
+
+Pass `-Credential`, `-TrustRepository`, and `-AcceptLicense` independently when
+needed for inspection, with the same meanings as installation. No credential or
+consent is retained for a later call. Owned temporary registrations and the
+inspection workspace are cleaned on success and failure.
+
 Installation uses native PowerShell confirmation. For automation,
 `-Confirm:$false` suppresses that confirmation only; it does not accept a
 license, trust a repository, provide credentials, or grant filesystem access.
@@ -118,6 +149,49 @@ Obtain `$credential` through your approved secret-management workflow. PMU
 does not read a particular environment variable or install credential providers.
 Plans are live in-process objects, not portable authorization records; obtain
 a new plan after restarting the shell or changing installation/repository state.
+
+### Public installation identity and scope
+
+| Public field | Meaning |
+|---|---|
+| `Plan.ModuleName`, `Plan.ModuleGuid` | Validated module identity |
+| `Plan.Scope` | Explicitly selected `CurrentUser` or `AllUsers` scope |
+| `Plan.DestinationRoot` | Selected scope's Modules root |
+| `Plan.InstalledManifestPath` | Selected existing manifest file |
+| `Plan.InstalledVersion` | Complete existing version in that scope |
+| `Plan.TargetVersion`, `Plan.TargetNumericVersion` | Exact semantic target and numeric directory version |
+| `Plan.TargetInstalledPath` | Exact target **directory** |
+| `Result.InstalledPath` | Verified target directory when `VerificationStatus` is `Verified`; otherwise the existing selected directory |
+| `Result.ModuleName`, `Result.ModuleGuid`, `Result.Scope` | The same selected identity and scope |
+| `Result.InstalledVersion`, `Result.TargetVersion` | Observed installed and approved target complete versions |
+
+After verified installation, the exact manifest file is
+`Join-Path $result.InstalledPath "$($result.ModuleName).psd1"`.
+There is no `Result.InstalledManifestPath` property. A later name-only module
+search does not preserve this exact identity.
+
+`Plan.ObservedInstalledVersions` entries expose `Scope`, `Root`, `ManifestPath`,
+`Guid`, `FullVersion`, `NumericVersion`, and `Prerelease` for discovered copies
+in both supported scopes. These observations are returned only after successful
+planning in a scope with an existing installation. PMU does not publicly infer
+scope from a supplied module reference or silently choose the reference's scope:
+`Policy.Scope` defaults to CurrentUser. Consumers preserving an existing scope
+must classify the reference against the supported standard roots and explicitly
+pass the correct scope. Unknown/nonstandard layouts must fail closed.
+
+Supported roots are `MyDocuments/PowerShell/Modules` and
+`ProgramFiles/PowerShell/Modules` on Windows, and
+`$HOME/.local/share/powershell/Modules` and
+`/usr/local/share/powershell/Modules` on Linux/macOS, for CurrentUser and AllUsers
+respectively. Windows MyDocuments is obtained through
+`[Environment]::GetFolderPath('MyDocuments')`, not a guessed profile path.
+Supported manifests use `<root>/<name>/<numeric-version>/<name>.psd1`.
+
+Missing per-call credentials and provider authentication failures use
+`PMU.AuthenticationFailed`; there is no separate credential-required error ID.
+Trust, license, and filesystem permission errors remain
+`PMU.RepositoryTrustRequired`, `PMU.LicenseAcceptanceRequired`, and
+`PMU.PermissionDenied`.
 
 Repository selection is always caller-owned and source-bound. PMU never
 searches another feed just because it contains the same package name. PSGallery,

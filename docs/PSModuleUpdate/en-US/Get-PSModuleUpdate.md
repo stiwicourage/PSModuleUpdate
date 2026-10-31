@@ -4,7 +4,7 @@ external help file: PSModuleUpdate-Help.xml
 HelpUri: ''
 Locale: en-US
 Module Name: PSModuleUpdate
-ms.date: 10.30.2026
+ms.date: 10.31.2026
 PlatyPS schema version: 2024-05-01
 title: Get-PSModuleUpdate
 ---
@@ -211,6 +211,16 @@ Cannot be combined with `Repository`.
 PMU reuses a unique existing registration or creates a temporary owned
 registration; ambiguous consumer registrations are rejected.
 Credentials, query strings, and fragments must not be embedded in the URI.
+One absolute repository endpoint.
+Cannot be combined with `Repository`.
+PMU reuses a unique existing registration or creates a temporary owned
+registration; ambiguous consumer registrations are rejected.
+Credentials, query strings, and fragments must not be embedded in the URI.
+One absolute repository endpoint.
+Cannot be combined with `Repository`.
+PMU reuses a unique existing registration or creates a temporary owned
+registration; ambiguous consumer registrations are rejected.
+Credentials, query strings, and fragments must not be embedded in the URI.
 
 ```yaml
 Type: System.Uri
@@ -246,12 +256,28 @@ A live schema-1, data-only plan with active and selected-scope installation
 identity, repository snapshot, exact target, policy, disposition, and
 prerequisites. It contains no credential and is not a durable authorization token.
 
+`ModuleName` and `ModuleGuid` identify the target. `Scope` and `DestinationRoot`
+identify the selected installation scope and its Modules root.
+`InstalledManifestPath` is the selected existing manifest **file**;
+`InstalledVersion` is its complete version. `TargetVersion` is the exact semantic
+target, `TargetNumericVersion` is its numeric directory version, and
+`TargetInstalledPath` is the exact target **directory**.
+
+`ObservedInstalledVersions` contains validated discovered copies from both
+supported scopes, with `Scope`, `Root`, `ManifestPath`, `Guid`, `FullVersion`,
+`NumericVersion`, and `Prerelease`. Planning must first succeed in an explicitly
+selected scope with an existing installation. The CurrentUser default is not
+automatic scope inference from the supplied reference.
+
 ## NOTES
 
 Requires PowerShell 7.4 or later and the qualified PSResourceGet 1.2.0 baseline.
 Missing provider setup, unavailable packages, authentication failures, unsafe
 paths, and identity mismatches are terminating structured PMU errors, not
 UpToDate results. Credentials must be supplied independently to installation.
+They must also be supplied independently to `Get-PSModuleUpdateTargetManifest`
+when candidate metadata inspection is needed. Inspection does not alter this
+plan or cause ordinary planning to stage/download packages.
 
 When no eligible package exists in the explicitly selected repository,
 discovery terminates with the stable error ID `PMU.PackageNotFound` and returns
