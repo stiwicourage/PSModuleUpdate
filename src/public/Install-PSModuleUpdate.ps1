@@ -1,4 +1,11 @@
-# @CodeScene(disable:"Excess Number of Function Arguments")
+<# Intentional CodeScene exception (5 parameters, limit is 4). Each parameter is an independent,
+explicit opt-in on the public API: Credential, AcceptLicense, TrustRepository and
+ReplaceUnmanagedInstallation. Keeping them separate makes every risky consent visible and
+auditable at the call site and avoids a breaking change for existing callers. Bundling them
+into an options object would hide those consents and move complexity elsewhere without
+reducing it. Reconsider if further parameters are added.
+@CodeScene(disable:"Excess Number of Function Arguments")
+#>
 function Install-PSModuleUpdate {
     <#
     .EXTERNALHELP PSModuleUpdate-Help.xml
