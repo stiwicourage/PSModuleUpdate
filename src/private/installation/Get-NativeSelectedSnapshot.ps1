@@ -4,11 +4,8 @@ function Get-NativeSelectedSnapshot {
         [bool]$AlreadyInstalled
     )
 
-    $path = Split-Path -Parent $Operation.Plan.InstalledManifestPath
-    if ($AlreadyInstalled) {
-        $path = $Operation.Plan.TargetInstalledPath
-    }
-    $source = Get-NativeInstalledSource $Operation $path
+    $path = Get-NativeSnapshotPath $Operation $AlreadyInstalled
+    $source = Get-NativeSelectedSource $Operation $path (-not $AlreadyInstalled)
     [pscustomobject]@{
         Path = $path
         Source = $source

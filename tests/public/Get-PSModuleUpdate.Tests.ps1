@@ -21,6 +21,19 @@ Describe 'Get-PSModuleUpdate' -Tag 'PMU' {
         $command.Parameters.Keys | Should -Not -Contain 'Scope'
         $command.Parameters.Keys | Should -Not -Contain 'WhatIf'
     }
+    It 'plans an unmanaged installed copy without native metadata requirements' {
+        $script:repositoryFixture = Initialize-PMURepositoryFixture $TestDrive
+        Initialize-PMURepositoryMock
+        Initialize-PMUProviderMock
+        $path = Split-Path -Parent $repositoryFixture.Module.Path
+        Test-Path (Join-Path $path 'PSGetModuleInfo.xml') | Should -BeFalse
+        Mock Read-NativeInstallationRecord { throw 'Planning must not require native metadata.' }
+        $plan = Get-PSModuleUpdate -Module $repositoryFixture.Module -Repository PublicFixture -Policy @{ Channel = 'IncludePrerelease' }
+        $plan.InstalledVersion | Should -BeExactly '2.0.0-preview.1'
+        $plan.TargetVersion | Should -BeExactly '2.0.0-preview.2'
+        $plan.Scope | Should -BeExactly 'CurrentUser'
+        Should -Invoke Read-NativeInstallationRecord -Times 0
+    }
     Context 'missing package public boundary' -Tag 'PMUPackageNotFound' {
         BeforeEach {
             $script:repositoryFixture = Initialize-PMURepositoryFixture $TestDrive

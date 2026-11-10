@@ -14,4 +14,11 @@ Describe 'Install-PSModuleUpdate built surface' -Tag 'Integration', 'PMUHelp' {
         $parameter = (Get-Help Install-PSModuleUpdate -Full).Parameters.Parameter | Where-Object Name -eq AcceptLicense
         ($parameter.Description.Text -join "`n") | Should -Match 'does not disclose'
     }
+    It 'exports the unmanaged opt-in and loads its generated external help' {
+        $command = Get-Command Install-PSModuleUpdate -Module PSModuleUpdate
+        $command.Parameters['ReplaceUnmanagedInstallation'].ParameterType | Should -Be ([switch])
+        $parameter = (Get-Help Install-PSModuleUpdate -Full).Parameters.Parameter | Where-Object Name -eq ReplaceUnmanagedInstallation
+        ($parameter.Description.Text -join "`n") | Should -Match 'absent'
+        ($parameter.Description.Text -join "`n") | Should -Match 'unreadable'
+    }
 }

@@ -4,7 +4,7 @@ external help file: PSModuleUpdate-Help.xml
 HelpUri: ''
 Locale: en-US
 Module Name: PSModuleUpdate
-ms.date: 10.31.2026
+ms.date: 11.09.2026
 PlatyPS schema version: 2024-05-01
 title: Install-PSModuleUpdate
 ---
@@ -21,7 +21,7 @@ Applies one live exact-version module update plan.
 
 ```
 Install-PSModuleUpdate -Update <Object> [-Credential <pscredential>] [-AcceptLicense]
- [-TrustRepository] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-TrustRepository] [-ReplaceUnmanagedInstallation] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## ALIASES
@@ -57,6 +57,15 @@ $plan | Install-PSModuleUpdate -AcceptLicense -TrustRepository
 ```
 
 Requests native confirmation before applying the exact approved target and scope.
+
+### EXAMPLE 3
+
+```powershell
+$plan | Install-PSModuleUpdate -ReplaceUnmanagedInstallation
+```
+
+Explicitly replaces a manually copied installation without root PSGetModuleInfo.xml.
+The exact planned target, repository and selected scope remain unchanged.
 
 ## PARAMETERS
 
@@ -111,6 +120,32 @@ Per-call provider credential; never persisted.
 ```yaml
 Type: System.Management.Automation.PSCredential
 DefaultValue: ''
+SupportsWildcards: false
+Aliases: []
+ParameterSets:
+- Name: ByUpdatePlan
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -ReplaceUnmanagedInstallation
+
+Explicitly allows replacing the selected manually copied installation only when
+its root PSGetModuleInfo.xml is absent. Defaults to off. Present-but-unreadable or
+mismatching metadata still fails. Uses native Install-Module for the exact planned
+target, with Force only when its target directory collides. Existing identity,
+repository, scope, backup, journal, tree verification and rollback checks remain.
+This consent is per call and independent of AcceptLicense and TrustRepository.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: False
 SupportsWildcards: false
 Aliases: []
 ParameterSets:
@@ -244,8 +279,15 @@ repointed or silently replaced by aliases. An initially unregistered URI uses a
 fresh operation-owned temporary registration after approval, with checked
 cleanup. `-WhatIf` never creates one. Existing registrations are never modified.
 
-Same-numeric-version prerelease progression uses exact Save-PSResource staging
-and internal Install-PSResource -Reinstall only for a validated collision.
+Same-numeric-version prerelease progression uses exact native Save-Module staging.
+Managed originals use Update-Module. ReplaceUnmanagedInstallation permits native
+Install-Module only when the selected original lacks root PSGetModuleInfo.xml.
+Without this opt-in, missing metadata still raises PMU.UnsupportedInstallation;
+unreadable or mismatching existing metadata remains an error with the switch.
+Planning needs no opt-in. WhatIf does not mutate files or acquire packages.
+Native Force is used only for an unmanaged target-directory collision after GUID
+validation and a verified backup. An already installed target still requires its
+native metadata; the opt-in waives requirements only for the old installation.
 Backups are outside Modules. Journals use flushed temporary files and atomic
 file replacement; PMU does not claim atomic installation or guaranteed
 power-loss recovery. Interrupted state and journal paths are untrusted and

@@ -6,7 +6,7 @@ Describe 'Assert-NativeInstallationSnapshot' -Tag 'PMUNativeHandoff' {
     BeforeEach {
         $operation = Initialize-PMUTestOperation $TestDrive
         $path = Split-Path -Parent $operation.Plan.InstalledManifestPath
-        $script:snapshotSource = [pscustomobject]@{ Name = 'ApprovedFeed'; Uri = $operation.Plan.RepositoryUri }
+        $script:snapshotSource = [pscustomobject]@{ Name = 'ApprovedFeed'; Uri = $operation.Plan.RepositoryUri; Unmanaged = $false }
         $script:snapshotContext = [pscustomobject]@{
             Operation = $operation
             Snapshot = [pscustomobject]@{
@@ -40,5 +40,14 @@ Describe 'Assert-NativeInstallationSnapshot' -Tag 'PMUNativeHandoff' {
 
         { Assert-NativeInstallationSnapshot $snapshotContext } |
             Should -Throw -ErrorId 'PMU.InstalledStateChanged'
+    }
+    It 'revalidates unmanaged absence while retaining tree and identity checks' {
+        $snapshotContext.Operation.Consent.ReplaceUnmanagedInstallation = $true
+        $snapshotContext.Operation.RepositoryName = 'ApprovedFeed'
+        $snapshotContext.Snapshot.Source.Unmanaged = $true
+        @(Assert-NativeInstallationSnapshot $snapshotContext).Count | Should -Be 0
+        Should -Invoke Get-NativeInstalledSource -Times 0
+        [IO.File]::WriteAllText((Join-Path $snapshotContext.Snapshot.Path 'PSGetModuleInfo.xml'), 'appeared')
+        { Assert-NativeInstallationSnapshot $snapshotContext } | Should -Throw -ErrorId 'PMU.InstalledStateChanged'
     }
 }

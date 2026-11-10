@@ -7,6 +7,10 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
 
 ### Added
 
+- Use `Install-PSModuleUpdate -ReplaceUnmanagedInstallation` to explicitly
+  update a manually copied installation with no root `PSGetModuleInfo.xml`.
+  The default remains fail-closed. Unreadable or mismatching existing metadata
+  is never bypassed, and exact-target verification and recovery remain enabled.
 - Inspect an approved exact target with `Get-PSModuleUpdateTargetManifest`
   before deciding to install. Its `Manifest` hashtable includes full
   PrivateData without loading or running the target. Installation rejects
@@ -27,8 +31,10 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
 
 ### Changed
 
-- Existing-module updates now use native `Update-Module` without Force or an
-  install fallback. Exact target/source, consent and restart requirements stay
+- Managed-module updates use native `Update-Module` without Force or an
+  automatic install fallback. The unmanaged opt-in uses exact-version native
+  `Install-Module`, with Force only for a target-directory collision.
+  Exact target/source, consent and restart requirements stay
   in effect. Prerelease updates use native-compatible labels such as `preview03`;
   dotted labels such as `preview.3` are not supported by the native installer.
   Temporary repository setup also handles automatically registered defaults

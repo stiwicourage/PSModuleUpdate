@@ -15,7 +15,9 @@ installation. It targets PowerShell 7.4+ and uses
 `Microsoft.PowerShell.PSResourceGet` 1.2.0 for discovery and declares that exact
 version as a module dependency. The unreleased update implementation uses
 PowerShellGet 2.2.5 and PackageManagement 1.4.8.1 for staging and native
-`Update-Module`, without Force or an `Install-Module` fallback. It never
+`Update-Module` for managed installations. An explicit unmanaged-installation
+opt-in uses exact-version `Install-Module`, with Force only for a target-directory
+collision. It never
 persistently configures consumer repositories, stores credentials, elevates
 privileges, or reloads the updated module.
 
@@ -23,7 +25,7 @@ privileges, or reloads the updated module.
 or `preview03`, matching the Gerber/NovaModuleTools release workflow.
 PowerShellGet 2.2.5 rejects dotted labels such as `preview.2`; those labels remain
 valid for PMU's semantic comparison but are outside this native update scope.
-No Force, beta provider or alternate installer is introduced to bypass that
+No beta provider or alternate installer is introduced to bypass that
 limitation. See
 [current qualification](docs/architecture/TESTING.md#native-update-transition)
 for successful Gallery evidence and the remaining gates. Historical G-4A3
@@ -46,6 +48,22 @@ After reviewing the plan, install it:
 ```powershell
 $update | Install-PSModuleUpdate
 ```
+
+For a manually copied development installation with no root
+`PSGetModuleInfo.xml`, explicitly opt in after reviewing the plan:
+
+```powershell
+$update | Install-PSModuleUpdate -ReplaceUnmanagedInstallation
+```
+
+The switch defaults to off; without it, missing native metadata still fails
+with `PMU.UnsupportedInstallation`. Present-but-unreadable or mismatching
+metadata is never treated as unmanaged. The opt-in installs only the exact
+planned version from the bound repository into the selected scope. Native
+Force is used only if the target directory already exists, after the existing
+GUID checks and verified backup. Tree verification, journaling, and best-effort
+rollback remain in effect, including same-base replacement. Planning does not
+require the switch, and `-WhatIf` never installs or replaces files.
 
 ### Inspect the exact target manifest
 

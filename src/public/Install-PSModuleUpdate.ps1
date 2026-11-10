@@ -1,3 +1,4 @@
+# @CodeScene(disable:"Excess Number of Function Arguments")
 function Install-PSModuleUpdate {
     <#
     .EXTERNALHELP PSModuleUpdate-Help.xml
@@ -16,6 +17,10 @@ function Install-PSModuleUpdate {
     Explicitly accepts provider package license requirements for this operation.
     .PARAMETER TrustRepository
     Allows this operation against an untrusted repository without changing its registration.
+    .PARAMETER ReplaceUnmanagedInstallation
+    Explicitly allows replacing a manually copied installation only when its root
+    PSGetModuleInfo.xml is absent. Installs the exact planned target through the provider;
+    unreadable or mismatching metadata still fails. Backup and rollback safeguards remain.
     .EXAMPLE
     $plan | Install-PSModuleUpdate -WhatIf
     Revalidates read-only without locking, staging, installing, or repairing recovery state.
@@ -30,17 +35,20 @@ function Install-PSModuleUpdate {
         [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'ByUpdatePlan')][ValidateNotNull()][object]$Update,
         [Parameter(ParameterSetName = 'ByUpdatePlan')][pscredential]$Credential,
         [Parameter(ParameterSetName = 'ByUpdatePlan')][switch]$AcceptLicense,
-        [Parameter(ParameterSetName = 'ByUpdatePlan')][switch]$TrustRepository
+        [Parameter(ParameterSetName = 'ByUpdatePlan')][switch]$TrustRepository,
+        [Parameter(ParameterSetName = 'ByUpdatePlan')][switch]$ReplaceUnmanagedInstallation
     )
     process {
         $operation = Initialize-InstallationRequest $Update $Credential @{
-            AcceptLicense = [bool]$AcceptLicense
-            TrustRepository = [bool]$TrustRepository
+            AcceptLicense                = [bool]$AcceptLicense
+            TrustRepository              = [bool]$TrustRepository
+            ReplaceUnmanagedInstallation = [bool]$ReplaceUnmanagedInstallation
         }
         $target = "$($Update.ModuleName) $($Update.TargetVersion) from $($Update.RepositoryName ?? $Update.RepositoryUri) into $($Update.Scope)"
         if ($PSCmdlet.ShouldProcess($target, 'Install exact module update')) {
             Invoke-UpdateInstallation $operation
-        } else {
+        }
+        else {
             ConvertTo-DeclinedUpdateResult $Update
         }
     }

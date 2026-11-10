@@ -6,7 +6,7 @@ function Assert-NativeSelectedInstallation {
         Write-PMUError 'PMU.InstalledStateChanged' 'The selected installation changed during handoff.'
     }
     Assert-NativeInstallationSnapshot $Context
-    if ($Context.AlreadyInstalled) {
+    if ($Context.AlreadyInstalled -or (Test-UnmanagedInstallation $operation $Context.Snapshot.Path)) {
         return
     }
     $parameters = Get-NativeUpdateParameter $operation

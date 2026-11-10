@@ -46,4 +46,13 @@ Describe 'Get-NativeSelectedSnapshot' -Tag 'PMU', 'PMUWorkerContracts' {
             Should -Throw -ErrorId 'PMU.SourceMismatch'
         Should -Invoke Get-FileTreeInventory -Times 0
     }
+    It 'snapshots an opted-in unmanaged original without reading native metadata' {
+        $operation.Consent.ReplaceUnmanagedInstallation = $true
+        $operation.RepositoryName = 'ApprovedFeed'
+        $snapshot = Get-NativeSelectedSnapshot $operation $false
+        $snapshot.Source.Unmanaged | Should -BeTrue
+        $snapshot.Version | Should -BeExactly $operation.Plan.InstalledVersion
+        $snapshot.Tree.Count | Should -BeGreaterThan 0
+        Should -Invoke Get-NativeInstalledSource -Times 0
+    }
 }

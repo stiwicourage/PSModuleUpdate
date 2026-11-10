@@ -26,4 +26,17 @@ Describe 'ConvertTo-NativeWorkerOperation' -Tag 'PMU', 'PMUWorkerContracts' {
         $copy.NativeContext.CurrentUserRoot | Should -BeExactly 'module-root'
         $copy.NativeContext.Paths | Should -BeNullOrEmpty
     }
+    It 'preserves unmanaged consent through the actual native payload serialization' {
+        $operation = Initialize-PMUTestOperation $TestDrive
+        $operation.Consent.ReplaceUnmanagedInstallation = $true
+        $snapshot = [pscustomobject]@{ Source = [pscustomobject]@{ Name = 'ApprovedFeed' } }
+        Mock Get-NativeProviderRoot { 'owned-root' }
+        Mock Resolve-ModuleInstallationRoot { 'module-root' }
+        $copy = ConvertTo-NativeWorkerOperation $operation $snapshot
+        $payload = ConvertTo-NativeWorkerPayload ([pscustomobject]@{ Operation = $copy })
+        $xml = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($payload))
+        $worker = [Management.Automation.PSSerializer]::Deserialize($xml)
+        $worker.Operation.Consent['ReplaceUnmanagedInstallation'] | Should -BeTrue
+        Test-UnmanagedInstallation $worker.Operation (Split-Path -Parent $operation.Plan.InstalledManifestPath) | Should -BeTrue
+    }
 }
