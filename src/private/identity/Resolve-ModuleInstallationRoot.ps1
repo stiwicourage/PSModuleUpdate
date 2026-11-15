@@ -4,7 +4,7 @@ function Resolve-ModuleInstallationRoot {
         if ($Scope -eq 'AllUsers') {
             return Assert-SafePath (Join-Path $env:ProgramFiles 'PowerShell/Modules')
         }
-        return Assert-SafePath (Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell/Modules')
+        return Assert-SafePath (Join-Path (Get-WindowsDocumentsPath) 'PowerShell/Modules')
     }
     if ($Scope -eq 'AllUsers') {
         return Assert-SafePath '/usr/local/share/powershell/Modules'
