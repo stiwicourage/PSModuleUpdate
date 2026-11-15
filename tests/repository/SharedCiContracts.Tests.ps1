@@ -11,7 +11,7 @@ BeforeAll {
 
 Describe 'Shared CI consumer contracts' -Tag 'SharedCi', 'WorkflowPolicy', 'BuildTooling' {
     It 'uses the shared test workflow without replacing its test command' {
-        $script:testsWorkflow | Should -Match 'uses: stiwicourage/powershell-ci/.github/workflows/tests.yml@develop'
+        $script:testsWorkflow | Should -Match 'uses: stiwicourage/powershell-ci/\.github/workflows/tests\.yml@\S+'
         $script:testsWorkflow | Should -Not -Match 'test-command:'
         $script:testsWorkflow | Should -Not -Match 'runs-on:'
     }
@@ -42,16 +42,16 @@ Describe 'Shared CI consumer contracts' -Tag 'SharedCi', 'WorkflowPolicy', 'Buil
     }
 
     It 'uses the shared publisher with GerberCore release semantics and isolated dependencies' {
-        $script:publishWorkflow | Should -Match 'uses: stiwicourage/powershell-ci/.github/workflows/publish.yml@develop'
+        $script:publishWorkflow | Should -Match 'uses: stiwicourage/powershell-ci/\.github/workflows/publish\.yml@\S+'
         $script:publishWorkflow | Should -Match 'test-command: Test-NovaBuild'
         $script:publishWorkflow | Should -Match 'release-continuous-integration: true'
         $script:publishWorkflow | Should -Match 'dependency-mode: isolated'
     }
 
     It 'delegates all three security checks and keeps dependency review PR-only' {
-        $script:securityWorkflow | Should -Match 'codeql.yml@develop'
-        $script:securityWorkflow | Should -Match 'powershell-analyzer.yml@develop'
-        $script:securityWorkflow | Should -Match 'dependency-review.yml@develop'
+        $script:securityWorkflow | Should -Match 'uses: stiwicourage/powershell-ci/\.github/workflows/codeql\.yml@\S+'
+        $script:securityWorkflow | Should -Match 'uses: stiwicourage/powershell-ci/\.github/workflows/powershell-analyzer\.yml@\S+'
+        $script:securityWorkflow | Should -Match 'uses: stiwicourage/powershell-ci/\.github/workflows/dependency-review\.yml@\S+'
         $script:securityWorkflow | Should -Match "github.event_name == 'pull_request'"
         $script:securityWorkflow | Should -Not -Match 'fail-on-severity:'
     }

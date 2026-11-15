@@ -34,13 +34,7 @@ function Get-CiLaneStatus {
         [Parameter(Mandatory)][hashtable]$Summary
     )
 
-    $phaseHealthy = @('build', 'unit', 'integration' | Where-Object { -not (Test-CiPhaseSucceeded -Phase $Phase -Name $_) }).Count -eq 0
-    $summaryHealthy = (Test-CiSummaryHealthy -Summary $Summary -Key 'unit') -and (Test-CiSummaryHealthy -Summary $Summary -Key 'integration')
-    $check = @(
-        @($Mismatch).Count -eq 0
-        $phaseHealthy
-        $summaryHealthy
-    )
+    $check = @(Get-CiLaneHealthCheck -Mismatch $Mismatch -Phase $Phase -Summary $Summary)
     if ($check -notcontains $false) {
         return 'passed'
     }
@@ -48,26 +42,39 @@ function Get-CiLaneStatus {
     return 'failed'
 }
 
+function Get-CiLaneHealthCheck {
+    param([string[]]$Mismatch, [object[]]$Phase, [hashtable]$Summary)
+    $phaseHealthy = @('build', 'unit', 'integration' | Where-Object { -not (Test-CiPhaseSucceeded -Phase $Phase -Name $_) }).Count -eq 0
+    $summaryHealthy = (Test-CiSummaryHealthy -Summary $Summary -Key 'unit') -and (Test-CiSummaryHealthy -Summary $Summary -Key 'integration')
+    return @(
+        @($Mismatch).Count -eq 0
+        $phaseHealthy
+        $summaryHealthy
+    )
+}
+
 function Build-CiLaneManifest {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)][string]$LaneId,
-        [Parameter(Mandatory)][string]$CommitSha,
-        [Parameter(Mandatory)]$Environment,
-        [string[]]$Mismatch = @(),
-        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Phase,
-        [Parameter(Mandatory)][hashtable]$Summary,
+        [Parameter(Mandatory)][hashtable]$Run,
         [Parameter(Mandatory)][hashtable]$Module
     )
 
+    $manifest = Get-CiLaneManifestIdentity -Run $Run
+    $manifest['mismatches'] = @($Run.Mismatch)
+    $manifest['phases'] = @($Run.Phase)
+    $manifest['tests'] = $Run.Summary
+    $manifest['modules'] = $Module
+    return $manifest
+}
+
+function Get-CiLaneManifestIdentity {
+    # Run is the existing lane execution record: Lane, Identity, Actual, Mismatch, Phase and Summary.
+    param([hashtable]$Run)
     return [ordered]@{
-        laneId = $LaneId
-        commitSha = $CommitSha
-        status = Get-CiLaneStatus -Mismatch $Mismatch -Phase $Phase -Summary $Summary
-        environment = $Environment
-        mismatches = @($Mismatch)
-        phases = @($Phase)
-        tests = $Summary
-        modules = $Module
+        laneId = $Run.Lane.id
+        commitSha = $Run.Identity.commitSha
+        status = Get-CiLaneStatus -Mismatch $Run.Mismatch -Phase $Run.Phase -Summary $Run.Summary
+        environment = $Run.Actual
     }
 }

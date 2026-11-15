@@ -7,7 +7,13 @@ Describe 'Invoke-CiLanePhase' -Tag 'BuildTooling' {
     It 'runs the command in a fresh PowerShell process and records a zero exit code' {
         $log = Join-Path $TestDrive 'ok.log'
 
-        $phase = Invoke-CiLanePhase -Name 'ok' -Command 'Write-Output ''hello from child''' -LogPath $log -WorkingDirectory $TestDrive
+        $request = @{
+            Name = 'ok'
+            Command = 'Write-Output ''hello from child'''
+            LogPath = $log
+            WorkingDirectory = $TestDrive
+        }
+        $phase = Invoke-CiLanePhase -Phase $request
 
         $phase.Name | Should -Be 'ok'
         $phase.ExitCode | Should -Be 0
@@ -21,7 +27,13 @@ Describe 'Invoke-CiLanePhase' -Tag 'BuildTooling' {
     It 'preserves a nonzero exit code so test failures fail the lane' {
         $log = Join-Path $TestDrive 'fail.log'
 
-        $phase = Invoke-CiLanePhase -Name 'fail' -Command 'Write-Output ''boom''; exit 3' -LogPath $log -WorkingDirectory $TestDrive
+        $request = @{
+            Name = 'fail'
+            Command = 'Write-Output ''boom''; exit 3'
+            LogPath = $log
+            WorkingDirectory = $TestDrive
+        }
+        $phase = Invoke-CiLanePhase -Phase $request
 
         $phase.ExitCode | Should -Be 3
         Get-Content -LiteralPath $log -Raw | Should -Match 'boom'
@@ -30,7 +42,13 @@ Describe 'Invoke-CiLanePhase' -Tag 'BuildTooling' {
     It 'treats a terminating error as a failed phase' {
         $log = Join-Path $TestDrive 'throw.log'
 
-        $phase = Invoke-CiLanePhase -Name 'throw' -Command 'throw ''bad''' -LogPath $log -WorkingDirectory $TestDrive
+        $request = @{
+            Name = 'throw'
+            Command = 'throw ''bad'''
+            LogPath = $log
+            WorkingDirectory = $TestDrive
+        }
+        $phase = Invoke-CiLanePhase -Phase $request
 
         $phase.ExitCode | Should -Not -Be 0
     }

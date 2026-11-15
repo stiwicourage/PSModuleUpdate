@@ -2,12 +2,7 @@ function New-CiDependencyRoot {
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][string]$Path)
 
-    if (Test-Path -LiteralPath $Path) {
-        throw "Dependency root already exists: '$Path'."
-    }
-    if ((Split-Path -Leaf $Path) -notlike 'pmu-ci-modules-*') {
-        throw 'Dependency roots must use the pmu-ci-modules- prefix.'
-    }
+    Assert-CiDependencyRootAvailable -Path $Path
     if (-not $PSCmdlet.ShouldProcess($Path, 'Create disposable CI dependency root')) {
         return
     }
@@ -18,6 +13,16 @@ function New-CiDependencyRoot {
     }
     $owner | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $owner.Path '.pmu-dependencies.json')
     return $owner
+}
+
+function Assert-CiDependencyRootAvailable {
+    param([string]$Path)
+    if (Test-Path -LiteralPath $Path) {
+        throw "Dependency root already exists: '$Path'."
+    }
+    if ((Split-Path -Leaf $Path) -notlike 'pmu-ci-modules-*') {
+        throw 'Dependency roots must use the pmu-ci-modules- prefix.'
+    }
 }
 
 function Get-CiDependencyOwner {

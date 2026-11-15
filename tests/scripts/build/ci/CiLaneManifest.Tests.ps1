@@ -101,8 +101,15 @@ Describe 'Build-CiLaneManifest' -Tag 'BuildTooling' {
             OperatingSystem = 'Linux'
             PowerShellVersion = '7.4.21'
         }
-        $manifest = Build-CiLaneManifest -LaneId 'linux-x64-ps74' -CommitSha 'abc123' -Environment $environment -Mismatch @() `
-            -Phase (Build-PhaseList) -Summary (Build-SummaryMap) -Module @{ Pester = '5.7.1' }
+        $run = @{
+            Lane = @{ id = 'linux-x64-ps74' }
+            Identity = @{ commitSha = 'abc123' }
+            Actual = $environment
+            Mismatch = @()
+            Phase = (Build-PhaseList)
+            Summary = (Build-SummaryMap)
+        }
+        $manifest = Build-CiLaneManifest -Run $run -Module @{ Pester = '5.7.1' }
 
         $manifest.laneId | Should -Be 'linux-x64-ps74'
         $manifest.commitSha | Should -Be 'abc123'
@@ -114,8 +121,15 @@ Describe 'Build-CiLaneManifest' -Tag 'BuildTooling' {
     }
 
     It 'survives a JSON round trip with the status intact' {
-        $manifest = Build-CiLaneManifest -LaneId 'x' -CommitSha 'y' -Environment ([pscustomobject]@{}) -Mismatch @('bad') `
-            -Phase (Build-PhaseList) -Summary (Build-SummaryMap) -Module @{}
+        $run = @{
+            Lane = @{ id = 'x' }
+            Identity = @{ commitSha = 'y' }
+            Actual = [pscustomobject]@{}
+            Mismatch = @('bad')
+            Phase = (Build-PhaseList)
+            Summary = (Build-SummaryMap)
+        }
+        $manifest = Build-CiLaneManifest -Run $run -Module @{}
 
         ($manifest | ConvertTo-Json -Depth 6 | ConvertFrom-Json).status | Should -Be 'failed'
     }

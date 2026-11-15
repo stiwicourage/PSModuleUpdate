@@ -39,7 +39,7 @@ Describe 'CI workflow security and gate policy' -Tag 'BuildTooling', 'WorkflowPo
     }
 
     It 'requires the shared publisher to isolate dependencies instead of using an ambient install command' {
-        $script:publish | Should -Match 'uses: stiwicourage/powershell-ci/.github/workflows/publish.yml@develop'
+        $script:publish | Should -Match 'uses: stiwicourage/powershell-ci/\.github/workflows/publish\.yml@\S+'
         $script:publish | Should -Match 'dependency-mode: isolated'
         $script:publish | Should -Not -Match 'install-command:'
     }

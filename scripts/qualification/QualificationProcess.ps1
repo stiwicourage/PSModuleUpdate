@@ -5,6 +5,16 @@ function Initialize-QualificationProcessInfo {
         [pscredential]$Credential
     )
 
+    $info = Get-QualificationChildStartInfo
+    Initialize-QualificationChildEnvironment $info $Options $Root
+    if ($Credential) {
+        Initialize-QualificationChildCredential $info $Credential
+    }
+    $info
+}
+
+function Get-QualificationChildStartInfo {
+    param()
     $info = [Diagnostics.ProcessStartInfo]::new((Join-Path $PSHOME 'pwsh'))
     foreach ($argument in @('-NoLogo', '-NoProfile', '-NonInteractive', '-File', "$PSScriptRoot/Invoke-QualificationChild.ps1")) {
         $info.ArgumentList.Add($argument)
@@ -12,10 +22,6 @@ function Initialize-QualificationProcessInfo {
     $info.UseShellExecute = $false
     $info.RedirectStandardOutput = $true
     $info.RedirectStandardError = $true
-    Initialize-QualificationChildEnvironment $info $Options $Root
-    if ($Credential) {
-        Initialize-QualificationChildCredential $info $Credential
-    }
     $info
 }
 
@@ -56,18 +62,23 @@ function Invoke-QualificationChild {
     $process.StartInfo = Initialize-QualificationProcessInfo $Options $Root $Credential
     try {
         [void]$process.Start()
-        $outputTask = $process.StandardOutput.ReadToEndAsync()
-        $errorTask = $process.StandardError.ReadToEndAsync()
-        Wait-QualificationChild $process
-        [void]$errorTask.GetAwaiter().GetResult()
-        if ($process.ExitCode -ne 0) {
-            throw 'Qualification child failed; raw provider errors withheld.'
-        }
-        $text = $outputTask.GetAwaiter().GetResult()
-        [regex]::Match($text, '(?m)^\{.+\}\s*$').Value | ConvertFrom-Json -Depth 30
+        Get-QualificationChildResult -Process $process
     } finally {
         $process.Dispose()
     }
+}
+
+function Get-QualificationChildResult {
+    param([Diagnostics.Process]$Process)
+    $outputTask = $Process.StandardOutput.ReadToEndAsync()
+    $errorTask = $Process.StandardError.ReadToEndAsync()
+    Wait-QualificationChild $Process
+    [void]$errorTask.GetAwaiter().GetResult()
+    if ($Process.ExitCode -ne 0) {
+        throw 'Qualification child failed; raw provider errors withheld.'
+    }
+    $text = $outputTask.GetAwaiter().GetResult()
+    [regex]::Match($text, '(?m)^\{.+\}\s*$').Value | ConvertFrom-Json -Depth 30
 }
 
 function Wait-QualificationChild {
