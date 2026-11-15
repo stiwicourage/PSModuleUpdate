@@ -27,6 +27,7 @@ Describe 'Assert-NativeSelectedInstallation' -Tag 'PMU', 'PMUNativeHandoff' {
                 Source = [pscustomobject]@{
                     Name = $operation.RepositoryName
                     Uri = $operation.Plan.RepositoryUri
+                    Unmanaged = $false
                 }
             }
         }
@@ -39,6 +40,15 @@ Describe 'Assert-NativeSelectedInstallation' -Tag 'PMU', 'PMUNativeHandoff' {
     }
     It 'accepts an unchanged selected tree and approved native source in the same scope' {
         Assert-NativeSelectedInstallation $selectionContext
+    }
+    It 'skips native candidate lookup only for an opted-in unmanaged original' {
+        $selectionContext.Operation.Consent.ReplaceUnmanagedInstallation = $true
+        Remove-Item (Join-Path $selectionContext.Snapshot.Path 'PSGetModuleInfo.xml')
+        $selectionContext.Snapshot.Source.Unmanaged = $true
+        Assert-NativeSelectedInstallation $selectionContext
+        Should -Invoke Get-InstalledModule -Times 0
+        [IO.File]::AppendAllText((Join-Path $selectionContext.Snapshot.Path 'FixtureModule.psm1'), 'changed')
+        { Assert-NativeSelectedInstallation $selectionContext } | Should -Throw -ErrorId 'PMU.InstalledStateChanged'
     }
     It 'rejects native selection of a path outside the observed selected-scope installations' {
         $nativeCandidate.InstalledLocation = Join-Path $TestDrive 'other-scope'

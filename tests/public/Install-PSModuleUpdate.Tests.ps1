@@ -19,4 +19,20 @@ Describe 'Install-PSModuleUpdate' -Tag 'PMU' {
         $binding.ValueFromPipeline | Should -BeTrue
         $binding.ValueFromPipelineByPropertyName | Should -BeFalse
     }
+    It 'forwards explicit unmanaged replacement consent without bypassing WhatIf' {
+        $operation = Initialize-PMUTestOperation $TestDrive
+        Mock Initialize-InstallationRequest { $script:requestedConsent = $Consent; $operation }
+        Mock Invoke-UpdateInstallation {}
+        $operation.Plan | Install-PSModuleUpdate -ReplaceUnmanagedInstallation -WhatIf
+        $requestedConsent.ReplaceUnmanagedInstallation | Should -BeTrue
+        Should -Invoke Invoke-UpdateInstallation -Times 0
+    }
+    It 'leaves unmanaged replacement consent off by default' {
+        $operation = Initialize-PMUTestOperation $TestDrive
+        Mock Initialize-InstallationRequest { $script:requestedConsent = $Consent; $operation }
+        Mock Invoke-UpdateInstallation {}
+        $operation.Plan | Install-PSModuleUpdate -Confirm:$false
+        $requestedConsent.ReplaceUnmanagedInstallation | Should -BeFalse
+        Should -Invoke Invoke-UpdateInstallation -Times 1
+    }
 }

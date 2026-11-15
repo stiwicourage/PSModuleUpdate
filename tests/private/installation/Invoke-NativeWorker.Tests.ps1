@@ -46,4 +46,16 @@ Describe 'Invoke-NativeWorker' -Tag 'PMU', 'PMUWorkerProtocol' {
         $messages[1].ErrorId | Should -BeExactly 'PMU.PlanStale'
         $leaseEntered | Should -BeFalse
     }
+
+    It 'reports inspection staging failure without entering the installation handshake' -Tag 'PMUTargetManifest' {
+        $context | Add-Member InspectManifest $true
+        Mock Initialize-StagedPackage {
+            Write-PMUError 'PMU.GuidMismatch' 'Wrong target.'
+        }
+        Invoke-NativeWorker $context
+        $messages.Count | Should -Be 1
+        $messages[0].ErrorId | Should -Be PMU.GuidMismatch
+        $leaseEntered | Should -BeFalse
+        Should -Invoke Assert-NativeWorkerGo -Times 0
+    }
 }

@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Add `Install-PSModuleUpdate -ReplaceUnmanagedInstallation` as an explicit,
+  default-off opt-in for manually copied installations lacking root
+  `PSGetModuleInfo.xml`. Install the exact planned target through the native
+  provider, using Force only for a target-directory collision. Present unreadable
+  or mismatching metadata still fails; identity, repository, scope, verification,
+  backup, journal and rollback safeguards remain enforced.
+- Add `Get-PSModuleUpdateTargetManifest` for exact-candidate manifest inspection
+  from an unmodified live plan, using owned staging without installation or
+  target import. Complete manifest PrivateData is returned as data only.
+  An internal manifest binding rejects changed content during later install
+  staging, including same-version republishing, before installed-file mutation.
+  Per-call credentials, trust/license consent, source binding and cleanup remain
+  enforced. Planning and install WhatIf remain acquisition-free.
+
 ### Changed
 
 ### Deprecated
@@ -15,6 +29,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Removed
 
 ### Fixed
+
+- Normalize PSResourceGet's structured `PackageNotFound` discovery error to
+  terminating `PMU.PackageNotFound`, including command-suffixed provider IDs.
+  Missing packages produce no update plan or fallback query; provider
+  diagnostics remain withheld. Unrelated discovery, authentication and
+  permission failures retain their existing error contracts.
 
 ### Security
 
@@ -104,4 +124,3 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Pass the owned temporary dependency root between `Run Tests` workflow steps
   so NovaModuleTools is discoverable for CI and changelog validation, with
   ownership-validated cleanup even after a failed consumer step.
-
