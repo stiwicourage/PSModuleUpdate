@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   publish:
-    uses: stiwicourage/powershell-ci/.github/workflows/publish.yml@develop
+    uses: stiwicourage/powershell-ci/.github/workflows/publish.yml@0.2.0
     with:
       dependency-mode: isolated
       pester-required-version: '5.7.1'
