@@ -31,6 +31,12 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
 
 ### Changed
 
+- Contributor tests, security checks, and publishing now use shared
+  `powershell-ci` workflows with the same caller convention as the reference
+  modules, including weekly grouped dependency updates. Local `run.ps1` and the six-platform/runtime CI
+  lanes remain in place. Stable publishing moves both changelog and release
+  notes. PSModuleUpdate references temporarily use `develop` during qualification;
+  public module commands and installation behavior are unchanged.
 - Managed-module updates use native `Update-Module` without Force or an
   automatic install fallback. The unmanaged opt-in uses exact-version native
   `Install-Module`, with Force only for a target-directory collision.

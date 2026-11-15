@@ -1,4 +1,4 @@
-name: Test platform matrix
+name: Run platform matrix
 
 on:
   push:

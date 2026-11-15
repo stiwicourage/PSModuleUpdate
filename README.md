@@ -277,6 +277,27 @@ Follow this workflow when working with Copilot in this repository.
 
 ## Nova project expectations
 
+Tests, coverage, security analysis, and publishing reuse
+[powershell-ci](https://github.com/stiwicourage/powershell-ci). The callers request
+isolated dependencies and exact Pester 5.7.1; `project.json` continues to require
+PSResourceGet 1.2.0 and source coverage of at least 95%. Local validation still
+uses `run.ps1`; the six-lane platform matrix and its evidence gate remain owned
+by this repository.
+
+All four shared-CI module consumers use the same test, publish, security, and
+weekly Dependabot convention, with PSScriptAnalyzer pinned to 1.25.0 and both
+release documents validated. PMU adds only its isolated-dependency and Pester
+requirements. Shared defaults own analysis and coverage artifact configuration.
+
+PSModuleUpdate's shared workflow references temporarily use `@develop` during
+testing. GerberCore and SemanticRelease retain `@0.1.1`; Gerber.AzureDevOps
+retains its existing `@0.1.0`.
+The shared changes must remain compatible with those tagged callers.
+PSModuleUpdate moves to a released version tag only after it exists and the
+shared changes are qualified.
+Publishing follows GerberCore's stable/prerelease flow and moves both release
+documents; CI migration does not itself authorize publishing or branch mutation.
+
 - Use Nova commands and `project.json` for build, test, package, and release behavior.
 - Treat `project.json` `Manifest.PowerShellHostVersion` as the compatibility target for PowerShell code, tests, and examples. If it is `5.1`, do not introduce PowerShell 7.x-only features.
 - Keep local quality checks ordered as ScriptAnalyzer first, then `Invoke-NovaBuild`, then `Invoke-NovaTest`, then `Test-NovaBuild` when your project defines both test flows.

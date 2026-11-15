@@ -55,7 +55,7 @@ If the only files changed are `.md` files and none of those files contain embedd
 - Inspect every required hosted job and the aggregate gate for the exact revision and run attempt before claiming CI or PR readiness. An earlier revision's green run, a green quality job or four passing lanes cannot qualify a failing six-lane matrix. Uncommitted fixes remain pending hosted verification; a local handoff must say so.
 - Trace failures to the first failing assertion or provisioning step before changing code. Keep regression assertions and thresholds intact; do not skip Windows tests, weaken comparisons, retry until green without diagnosis, or treat downstream missing-phase/artifact errors as the primary defect.
 
-For PSModuleUpdate, `.github/workflows/ci.yml` and `scripts/build/ci/CiLanes.json`
+For PSModuleUpdate, `.github/workflows/Run-Platform-Matrix.yml` and `scripts/build/ci/CiLanes.json`
 define six required platform/runtime lanes. Reproduce applicable local lanes with
 the absolute selected PowerShell executable and
 `./scripts/build/ci/Invoke-PlatformLane.ps1 -LaneId <lane-id>` on a matching host.

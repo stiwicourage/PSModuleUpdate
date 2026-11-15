@@ -24,6 +24,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Reuse `powershell-ci` for test/coverage, security, and publish workflows while
+  retaining the six local platform/runtime lanes, their SHA pins, dependency
+  isolation, skip classification, artifact checks, and 95% source-coverage gate.
+  Shared callers follow the common module convention with PSScriptAnalyzer
+  1.25.0, both release documents, daily tests, weekly security checks, and grouped
+  weekly GitHub Actions dependency updates. PMU adds isolated dependencies and
+  exact Pester 5.7.1 while shared defaults own JaCoCo artifacts and analysis. Publishing follows the
+  GerberCore workflow and moves `CHANGELOG.md` and `RELEASE_NOTE.md` together.
+  PSModuleUpdate references use `develop` for qualification before moving
+  to a separately released shared-workflow tag.
+
 ### Deprecated
 
 ### Removed
