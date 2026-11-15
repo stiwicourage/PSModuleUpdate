@@ -1,4 +1,5 @@
 function Test-CiPhaseSucceeded {
+    [OutputType([bool])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Phase,
@@ -10,6 +11,7 @@ function Test-CiPhaseSucceeded {
 }
 
 function Test-CiSummaryHealthy {
+    [OutputType([bool])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][hashtable]$Summary,
@@ -27,6 +29,7 @@ function Test-CiSummaryHealthy {
 }
 
 function Get-CiLaneStatus {
+    [OutputType([string])]
     [CmdletBinding()]
     param(
         [string[]]$Mismatch = @(),
@@ -54,6 +57,7 @@ function Get-CiLaneHealthCheck {
 }
 
 function Build-CiLaneManifest {
+    [OutputType([System.Collections.Specialized.OrderedDictionary])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][hashtable]$Run,

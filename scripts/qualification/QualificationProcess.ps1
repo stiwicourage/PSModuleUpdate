@@ -6,7 +6,7 @@ function Initialize-QualificationProcessInfo {
     )
 
     $info = Get-QualificationChildStartInfo
-    Initialize-QualificationChildEnvironment $info $Options $Root
+    Initialize-QualificationChildEnvironment -Info $info -Options $Options -Root $Root
     if ($Credential) {
         Initialize-QualificationChildCredential $info $Credential
     }
@@ -59,7 +59,7 @@ function Invoke-QualificationChild {
     )
 
     $process = [Diagnostics.Process]::new()
-    $process.StartInfo = Initialize-QualificationProcessInfo $Options $Root $Credential
+    $process.StartInfo = Initialize-QualificationProcessInfo -Options $Options -Root $Root -Credential $Credential
     try {
         [void]$process.Start()
         Get-QualificationChildResult -Process $process

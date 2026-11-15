@@ -5,7 +5,7 @@ function Assert-PMUManifestInspection {
     )
     $snapshot = ConvertTo-Json $Plan -Depth 12 -Compress
     $target = Get-PSModuleUpdateTargetManifest -Plan $Plan -TrustRepository -AcceptLicense
-    Assert-PMUManifestCandidate $target $Plan $Fixture $snapshot
+    Assert-PMUManifestCandidate -Target $target -Plan $Plan -Fixture $Fixture -Snapshot $snapshot
     $result = Install-PSModuleUpdate -Update $Plan -TrustRepository -AcceptLicense -Confirm:$false
     Assert-PMUManifestInstallation $result $target.Version
     Assert-PMUManifestRepublish $Fixture

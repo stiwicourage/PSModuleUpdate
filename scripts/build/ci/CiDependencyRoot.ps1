@@ -1,4 +1,5 @@
 function New-CiDependencyRoot {
+    [OutputType([hashtable])]
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][string]$Path)
 
@@ -7,12 +8,17 @@ function New-CiDependencyRoot {
         return
     }
     $directory = New-Item -ItemType Directory -Path $Path -ErrorAction Stop
-    $owner = @{
-        Path = $directory.FullName
-        Token = [guid]::NewGuid().ToString('N')
-    }
+    $owner = Get-CiDependencyCreationRecord -Directory $directory
     $owner | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $owner.Path '.pmu-dependencies.json')
     return $owner
+}
+
+function Get-CiDependencyCreationRecord {
+    param($Directory)
+    return @{
+        Path = $Directory.FullName
+        Token = [guid]::NewGuid().ToString('N')
+    }
 }
 
 function Assert-CiDependencyRootAvailable {

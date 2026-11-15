@@ -10,19 +10,18 @@ BeforeAll {
         )
 
         @(
-            [pscustomobject]@{
-                Name = 'build'
-                ExitCode = $Build
-            }
-            [pscustomobject]@{
-                Name = 'unit'
-                ExitCode = $Unit
-            }
-            [pscustomobject]@{
-                Name = 'integration'
-                ExitCode = $Integration
-            }
+            Get-TestPhaseEntry -Name 'build' -ExitCode $Build
+            Get-TestPhaseEntry -Name 'unit' -ExitCode $Unit
+            Get-TestPhaseEntry -Name 'integration' -ExitCode $Integration
         )
+    }
+
+    function Get-TestPhaseEntry {
+        param([string]$Name, [int]$ExitCode)
+        [pscustomobject]@{
+            Name = $Name
+            ExitCode = $ExitCode
+        }
     }
 
     function Build-SummaryMap {
@@ -33,20 +32,19 @@ BeforeAll {
         )
 
         @{
-            unit = [pscustomobject]@{
-                Total = $UnitTotal
-                Passed = $UnitTotal - $UnitFailed
-                Failed = $UnitFailed
-                Skipped = 0
-                SkippedName = @()
-            }
-            integration = [pscustomobject]@{
-                Total = 2
-                Passed = 2 - $IntegrationFailed
-                Failed = $IntegrationFailed
-                Skipped = 0
-                SkippedName = @()
-            }
+            unit = Get-TestSummaryEntry -Total $UnitTotal -Failed $UnitFailed
+            integration = Get-TestSummaryEntry -Total 2 -Failed $IntegrationFailed
+        }
+    }
+
+    function Get-TestSummaryEntry {
+        param([int]$Total, [int]$Failed)
+        [pscustomobject]@{
+            Total = $Total
+            Passed = $Total - $Failed
+            Failed = $Failed
+            Skipped = 0
+            SkippedName = @()
         }
     }
 }

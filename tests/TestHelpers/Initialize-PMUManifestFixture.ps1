@@ -7,7 +7,7 @@ function Initialize-PMUManifestFixture {
     $path = Join-Path $Fixture.Feed "$($Fixture.Name).$Version.nupkg"
     $archive = [IO.Compression.ZipFile]::Open($path, [IO.Compression.ZipArchiveMode]::Update)
     try {
-        Initialize-PMUArchiveManifest $archive "$($Fixture.Name).psd1" $MinimumVersion
+        Initialize-PMUArchiveManifest -Archive $archive -Name "$($Fixture.Name).psd1" -MinimumVersion $MinimumVersion
     } finally {
         $archive.Dispose()
     }
@@ -21,7 +21,7 @@ function Initialize-PMUArchiveManifest {
     )
     $text = Read-PMUFixtureArchiveManifest $Archive $Name
     $text = $text -replace "Gerber = @\{ MinimumGerberVersion = '[^']+' \}; ", ''
-    Write-PMUFixtureArchiveManifest $Archive $Name ($text.Replace('PrivateData = @{', "PrivateData = @{ Gerber = @{ MinimumGerberVersion = '$MinimumVersion' };"))
+    Write-PMUFixtureArchiveManifest -Archive $Archive -Name $Name -Text ($text.Replace('PrivateData = @{', "PrivateData = @{ Gerber = @{ MinimumGerberVersion = '$MinimumVersion' };"))
 }
 
 function Read-PMUFixtureArchiveManifest {

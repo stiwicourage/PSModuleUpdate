@@ -8,6 +8,7 @@ $script:RequiredJob = @('plan', 'quality', 'platform')
 . (Join-Path $PSScriptRoot 'CiGateEvidence.ps1')
 
 function ConvertTo-CiGateJobResult {
+    [OutputType([hashtable])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$NeedsJson
@@ -23,6 +24,7 @@ function ConvertTo-CiGateJobResult {
 }
 
 function Get-CiGateJobFailure {
+    [OutputType([string])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][hashtable]$JobResult
@@ -38,6 +40,7 @@ function Get-CiGateJobFailure {
 }
 
 function Read-CiLaneManifest {
+    [OutputType([hashtable])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Directory
@@ -75,6 +78,7 @@ function Get-CiInvalidManifest {
 }
 
 function Get-CiLaneManifestFailure {
+    [OutputType([string])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$LaneId,
@@ -119,6 +123,7 @@ function Assert-CiLaneEntryEvidence {
 }
 
 function Test-CiGateResult {
+    [OutputType([string])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][hashtable]$JobResult,

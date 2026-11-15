@@ -12,6 +12,7 @@ $script:PowerShellMetadataUri = 'https://raw.githubusercontent.com/PowerShell/Po
 . (Join-Path $PSScriptRoot 'CiRuntimeEvidence.ps1')
 
 function Get-CiPowerShellAssetName {
+    [OutputType([string])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Version,

@@ -136,6 +136,7 @@ function Get-CiPhaseLaunchRecord {
 }
 
 function Get-CiModuleVersion {
+    [OutputType([hashtable])]
     [CmdletBinding()]
     param()
 
@@ -149,6 +150,7 @@ function Get-CiModuleVersion {
 }
 
 function Get-CiLanePhaseDefinition {
+    [OutputType([object[]])]
     [CmdletBinding()]
     param()
 
@@ -168,6 +170,7 @@ function Get-CiPhaseDefinition {
 }
 
 function Invoke-CiLanePhaseSet {
+    [OutputType([object[]])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$RepositoryRoot,
@@ -203,6 +206,7 @@ function Get-CiPhaseInvocation {
 }
 
 function Copy-CiTestResult {
+    [OutputType([hashtable])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$RepositoryRoot,

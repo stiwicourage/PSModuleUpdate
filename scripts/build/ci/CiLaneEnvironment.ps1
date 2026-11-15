@@ -44,6 +44,7 @@ function Get-CiRunnerEnvironment {
 }
 
 function Get-CiEqualityMismatch {
+    [OutputType([string])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Label,
@@ -57,6 +58,7 @@ function Get-CiEqualityMismatch {
 }
 
 function Get-CiChannelMismatch {
+    [OutputType([string])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Channel,
@@ -84,6 +86,7 @@ function Get-CiRunnerMismatch {
 }
 
 function Test-CiLaneEnvironment {
+    [OutputType([string])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]$Expected,

@@ -18,7 +18,7 @@ function Install-QualificationPlan {
     $Session.Evidence.Phase = 'PMUInstallation'
     Test-QualificationWhatIf $Session $Plan
     $result = Install-PSModuleUpdate -Update $Plan -Credential $Session.Credential -AcceptLicense -TrustRepository -Confirm:$false
-    Assert-QualificationInstalledResult $Session $Plan $result
+    Assert-QualificationInstalledResult -Session $Session -Plan $Plan -Result $result
     $Session.Evidence.Outcome = 'Passed'
 }
 
@@ -84,7 +84,7 @@ function Get-QualificationPlan {
     $plan = Get-PSModuleUpdate @parameters
     Assert-QualificationPublicObject $plan
     Assert-QualificationSelectedTarget -Session $Session -Plan $plan
-    Assert-QualificationPlanIdentity $Session $Module $plan
+    Assert-QualificationPlanIdentity -Session $Session -Module $Module -Plan $plan
     $Session.Evidence.Plan = $plan
     $plan
 }
