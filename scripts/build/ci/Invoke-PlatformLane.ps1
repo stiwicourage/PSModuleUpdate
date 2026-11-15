@@ -142,7 +142,9 @@ function Get-CiModuleVersion {
 
     $module = @{}
     foreach ($name in 'Pester', 'NovaModuleTools', 'PSScriptAnalyzer', 'Microsoft.PowerShell.PSResourceGet', 'Microsoft.PowerShell.PlatyPS') {
-        $module[$name] = @(Get-Module -ListAvailable -Name $name | Sort-Object Version -Descending |
+        $module[$name] = @(Get-Module -ListAvailable -Name $name |
+                Where-Object { $name -ne 'Microsoft.PowerShell.PSResourceGet' -or $_.Version -eq [version]'1.2.0' } |
+                Sort-Object Version -Descending |
                 Select-Object -First 1 | ForEach-Object { $_.Version.ToString() })
     }
 

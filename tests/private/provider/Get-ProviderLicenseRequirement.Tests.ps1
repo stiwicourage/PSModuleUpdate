@@ -23,4 +23,14 @@ Describe 'Get-ProviderLicenseRequirement' -Tag 'PMU', 'PMULicense' {
             Get-ProviderLicenseRequirement @{ AdditionalMetadata = @{ RequireLicenseAcceptance = 'unknown' } } | Should -BeTrue
         }
     }
+    It 'requires consent when nonempty metadata has no license key' {
+        Get-ProviderLicenseRequirement @{ AdditionalMetadata = @{ Description = 'Fixture' } } | Should -BeTrue
+    }
+    It 'requires consent for conflicting key spellings even when both values claim no license requirement' {
+        $metadata = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
+        $metadata.Add('RequireLicenseAcceptance', $false)
+        $metadata.Add('requirelicenseacceptance', 'false')
+        Get-ProviderLicenseRequirement @{ AdditionalMetadata = $metadata } | Should -BeTrue
+        $metadata.Count | Should -Be 2
+    }
 }

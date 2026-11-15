@@ -65,3 +65,29 @@ Describe 'Get-CiLaneDefinition' -Tag 'BuildTooling' {
         { Get-CiLaneDefinition -LaneId 'nope' } | Should -Throw '*Unknown lane*'
     }
 }
+
+Describe 'Get-CiModuleVersion' -Tag 'BuildTooling', 'CiModuleInventory' {
+    BeforeEach {
+        Mock Get-Module {
+            [pscustomobject]@{ Version = [version]'1.0.0' }
+        }
+    }
+
+    It 'reports the qualified provider even when the runtime bundles a newer version' {
+        Mock Get-Module {
+            [pscustomobject]@{ Version = [version]'1.3.1' }
+            [pscustomobject]@{ Version = [version]'1.2.0' }
+        } -ParameterFilter { $Name -eq 'Microsoft.PowerShell.PSResourceGet' }
+        $modules = Get-CiModuleVersion
+        $modules['Microsoft.PowerShell.PSResourceGet'] | Should -BeExactly @('1.2.0')
+        $modules.Pester | Should -BeExactly @('1.0.0')
+    }
+
+    It 'does not report an unqualified provider as available when the required version is absent' {
+        Mock Get-Module {
+            [pscustomobject]@{ Version = [version]'1.3.1' }
+        } -ParameterFilter { $Name -eq 'Microsoft.PowerShell.PSResourceGet' }
+        $modules = Get-CiModuleVersion
+        $modules['Microsoft.PowerShell.PSResourceGet'].Count | Should -Be 0
+    }
+}

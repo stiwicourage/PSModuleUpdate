@@ -52,6 +52,8 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
 
 ### Fixed
 
+- Contributor CI no longer rejects the required provider merely because
+  PowerShell also bundles a newer PSResourceGet version.
 - Update checks now report `PMU.PackageNotFound` when the selected repository
   has no matching package. No update plan is returned, and PMU does not try
   another feed or expose raw provider diagnostics.

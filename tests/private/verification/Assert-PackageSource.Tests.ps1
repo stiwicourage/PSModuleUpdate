@@ -19,4 +19,15 @@ Describe 'Assert-PackageSource' -Tag 'PMU' {
         [pscustomobject]@{ RepositorySourceLocation = 'https://other.invalid/feed' } | Export-Clixml "$directory/PSGetModuleInfo.xml"
         { Assert-PackageSource $directory $operation.Plan } | Should -Throw -ErrorId 'PMU.VerificationFailed'
     }
+    It 'accepts absent optional source metadata without creating it' {
+        { Assert-PackageSource $TestDrive @{ RepositoryUri = 'https://feed.invalid' } } | Should -Not -Throw
+        Test-Path -LiteralPath (Join-Path $TestDrive 'PSGetModuleInfo.xml') | Should -BeFalse
+    }
+    It 'does not interpret an empty source property as a conflicting repository' {
+        $path = Join-Path $TestDrive 'PSGetModuleInfo.xml'
+        [pscustomobject]@{ RepositorySourceLocation = '' } | Export-Clixml $path
+        $hash = (Get-FileHash -LiteralPath $path).Hash
+        { Assert-PackageSource $TestDrive @{ RepositoryUri = 'https://feed.invalid' } } | Should -Not -Throw
+        (Get-FileHash -LiteralPath $path).Hash | Should -BeExactly $hash
+    }
 }

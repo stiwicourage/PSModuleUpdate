@@ -15,4 +15,13 @@ Describe 'Enter-InstallationLock' -Tag 'PMU' {
         $second.Dispose()
         Test-Path $path | Should -BeTrue
     }
+    It 'reports permission denial for a directory lock path without deleting its existing contents' {
+        $path = Join-Path $TestDrive 'directory-lock'
+        $null = New-Item -ItemType Directory -Path $path
+        $sentinel = Join-Path $path 'retain.txt'
+        [IO.File]::WriteAllText($sentinel, 'preserved lock-path contents')
+        { Enter-InstallationLock $path 100 } |
+            Should -Throw -ErrorId 'PMU.PermissionDenied' -ExpectedMessage 'Cannot open the scope-specific PMU lock.'
+        Get-Content -LiteralPath $sentinel -Raw | Should -BeExactly 'preserved lock-path contents'
+    }
 }

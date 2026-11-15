@@ -27,4 +27,15 @@ Describe 'Read-RepositoryReceipt' -Tag 'PMUUriBridge' {
         [IO.File]::WriteAllText($path, ('x' * 9000))
         { Read-RepositoryReceipt $path $TestDrive } | Should -Throw -ErrorId 'PMU.RepositoryRecoveryRequired*'
     }
+    It 'rejects a valid receipt stored under another operation nonce without rewriting either identity' {
+        $receipt = ConvertTo-RepositoryReceipt (Initialize-PMUUriFixture $TestDrive).Source
+        $path = Write-RepositoryReceipt $receipt $TestDrive
+        $renamed = Join-Path $TestDrive "$([guid]::NewGuid().ToString('N')).json"
+        Move-Item -LiteralPath $path -Destination $renamed
+        $hash = (Get-FileHash -LiteralPath $renamed).Hash
+        { Read-RepositoryReceipt $renamed $TestDrive } |
+        Should -Throw -ErrorId 'PMU.RepositoryRecoveryRequired' -ExpectedMessage 'Repository receipt name does not match its operation.'
+        (Get-FileHash -LiteralPath $renamed).Hash | Should -BeExactly $hash
+        Test-Path -LiteralPath $path | Should -BeFalse
+    }
 }

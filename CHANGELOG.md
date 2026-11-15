@@ -41,6 +41,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Record the qualified PSResourceGet 1.2.0 availability in CI lane manifests
+  even when the selected PowerShell runtime bundles a newer provider, so the
+  aggregate gate does not reject an available required dependency.
 - Normalize PSResourceGet's structured `PackageNotFound` discovery error to
   terminating `PMU.PackageNotFound`, including command-suffixed provider IDs.
   Missing packages produce no update plan or fallback query; provider

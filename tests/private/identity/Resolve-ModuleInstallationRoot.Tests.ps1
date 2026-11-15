@@ -24,4 +24,23 @@ Describe 'Resolve-ModuleInstallationRoot' -Tag 'PMU', 'PMUCoverageFollowUp' {
             $env:ProgramFiles = $originalProgramFiles
         }
     }
+    It 'routes Windows CurrentUser modules through the native Documents folder and path safety validation' {
+        # Unit routing only: the controlled Join-Path result is not Windows filesystem qualification.
+        $originalWindows = $IsWindows
+        $nativeDocuments = [Environment]::GetFolderPath('MyDocuments')
+        $expectedRoot = Join-Path $TestDrive 'Documents/PowerShell/Modules'
+        Mock Join-Path { $expectedRoot } -ParameterFilter {
+            $Path -ceq $nativeDocuments -and $ChildPath -ceq 'PowerShell/Modules'
+        }
+        try {
+            Set-Variable IsWindows $true -Force
+            Resolve-ModuleInstallationRoot 'CurrentUser' | Should -BeExactly $expectedRoot
+            Should -Invoke Join-Path -Times 1 -Exactly -ParameterFilter {
+                $Path -ceq $nativeDocuments -and $ChildPath -ceq 'PowerShell/Modules'
+            }
+            Test-Path -LiteralPath $expectedRoot | Should -BeFalse
+        } finally {
+            Set-Variable IsWindows $originalWindows -Force
+        }
+    }
 }

@@ -43,4 +43,11 @@ Describe 'Assert-RecoveryJournal' -Tag 'PMU' {
         $journal.State = 'invalid'
         { Assert-RecoveryJournal $journal $operation } | Should -Throw -ExpectedMessage 'Recovery paths are not the expected PMU-controlled paths.'
     }
+    It 'rejects an unknown state after valid schema identity and paths' {
+        $operation = Initialize-PMUTestOperation $TestDrive
+        $journal = ConvertTo-RecoveryJournal $operation @()
+        $journal.State = 'UnexpectedState'
+        { Assert-RecoveryJournal $journal $operation } |
+            Should -Throw -ErrorId 'PMU.RecoveryRequired' -ExpectedMessage 'Recovery journal state is invalid.'
+    }
 }
