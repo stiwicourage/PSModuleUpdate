@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.3.0] - 2026-11-16
+
+### Added
+
 - Add `Install-PSModuleUpdate -ReplaceUnmanagedInstallation` as an explicit,
   default-off opt-in for manually copied installations lacking root
   `PSGetModuleInfo.xml`. Install the exact planned target through the native
@@ -35,10 +49,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   PSModuleUpdate references use `develop` for qualification before moving
   to a separately released shared-workflow tag.
 
-### Deprecated
-
-### Removed
-
 ### Fixed
 
 - Provision exact qualified PowerShellGet 2.2.5 inside owned CI runtimes and
@@ -56,8 +66,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   Missing packages produce no update plan or fallback query; provider
   diagnostics remain withheld. Unrelated discovery, authentication and
   permission failures retain their existing error contracts.
-
-### Security
 
 ## [0.2.0] - 2026-10-27
 
@@ -145,3 +153,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Pass the owned temporary dependency root between `Run Tests` workflow steps
   so NovaModuleTools is discoverable for CI and changelog validation, with
   ownership-validated cleanup even after a failed consumer step.
+

@@ -7,6 +7,20 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.3.0] - 2026-11-16
+
+### Added
+
 - Use `Install-PSModuleUpdate -ReplaceUnmanagedInstallation` to explicitly
   update a manually copied installation with no root `PSGetModuleInfo.xml`.
   The default remains fail-closed. Unreadable or mismatching existing metadata
@@ -46,10 +60,6 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
   Temporary repository setup also handles automatically registered defaults
   without changing your repository settings.
 
-### Deprecated
-
-### Removed
-
 ### Fixed
 
 - Platform CI uses the already-qualified native PowerShellGet 2.2.5 in its
@@ -74,4 +84,3 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
 - Update checks no longer fail merely because `en-US` or `resources` folders
   coexist with a versioned module installation. Existing files are left intact.
 
-### Security
