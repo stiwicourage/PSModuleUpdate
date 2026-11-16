@@ -9,4 +9,20 @@ Describe 'Initialize-ControlledDirectory' -Tag 'PMU' {
             { Initialize-ControlledDirectory $path } | Should -Throw -ErrorId 'PMU.PermissionDenied'
         }
     }
+    It 'routes a validated Windows directory request to its native adapter without Unix creation' {
+        # The adapter is isolated; this proves dispatch, not native Windows permissions.
+        $originalWindows = $IsWindows
+        $expectedPath = Join-Path $TestDrive 'windows-dispatch'
+        Mock Initialize-WindowsControlledDirectory {}
+        try {
+            Set-Variable IsWindows $true -Force
+            Initialize-ControlledDirectory $expectedPath
+            Should -Invoke Initialize-WindowsControlledDirectory -Times 1 -Exactly -ParameterFilter {
+                $Path -ceq $expectedPath
+            }
+            Test-Path -LiteralPath $expectedPath | Should -BeFalse
+        } finally {
+            Set-Variable IsWindows $originalWindows -Force
+        }
+    }
 }

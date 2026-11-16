@@ -1,13 +1,13 @@
 function Get-LinuxRepositoryProcessStart {
-    param([int]$ProcessId)
+    param(
+        [int]$ProcessId,
+        [string]$ProcRoot = '/proc'
+    )
     try {
-        $stat = [IO.File]::ReadAllText("/proc/$ProcessId/stat")
+        $stat = [IO.File]::ReadAllText([IO.Path]::Combine($ProcRoot, "$ProcessId", 'stat'))
     } catch [IO.FileNotFoundException], [IO.DirectoryNotFoundException] {
         return $null
     }
-    $frequency = & '/usr/bin/getconf' CLK_TCK
-    if ($LASTEXITCODE -ne 0) {
-        throw [IO.InvalidDataException]::new('Cannot read the Linux process clock frequency.')
-    }
-    ConvertTo-LinuxProcessStartIdentity $stat ([IO.File]::ReadAllText('/proc/stat')) $frequency
+    $frequency = Get-LinuxClockTickFrequency
+    ConvertTo-LinuxProcessStartIdentity $stat ([IO.File]::ReadAllText([IO.Path]::Combine($ProcRoot, 'stat'))) $frequency
 }

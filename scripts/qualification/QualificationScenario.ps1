@@ -10,10 +10,15 @@ function Invoke-QualificationScenario {
     $Session.Evidence.Phase = 'PMUPlanning'
     Test-QualificationSourcePolicy $Session $module
     $plan = Get-QualificationPlan $Session $module
+    Install-QualificationPlan -Session $Session -Plan $plan
+}
+
+function Install-QualificationPlan {
+    param([object]$Session, [object]$Plan)
     $Session.Evidence.Phase = 'PMUInstallation'
-    Test-QualificationWhatIf $Session $plan
-    $result = Install-PSModuleUpdate -Update $plan -Credential $Session.Credential -AcceptLicense -TrustRepository -Confirm:$false
-    Assert-QualificationInstalledResult $Session $plan $result
+    Test-QualificationWhatIf $Session $Plan
+    $result = Install-PSModuleUpdate -Update $Plan -Credential $Session.Credential -AcceptLicense -TrustRepository -Confirm:$false
+    Assert-QualificationInstalledResult -Session $Session -Plan $Plan -Result $result
     $Session.Evidence.Outcome = 'Passed'
 }
 
@@ -54,14 +59,19 @@ function Assert-QualificationSeed {
     if (-not $Module) {
         throw 'The downloaded seed is not an available PowerShell module.'
     }
+    Assert-QualificationSeedUnloaded -Module $Module
+    $Session.Evidence.SeedHasPmuDependency = $false
+    $Session.Evidence.SeedWasLoaded = $false
+}
+
+function Assert-QualificationSeedUnloaded {
+    param([System.Management.Automation.PSModuleInfo]$Module)
     if (@($Module.RequiredModules | Where-Object Name -EQ 'PSModuleUpdate').Count) {
         throw 'Fixture unexpectedly depends on PMU.'
     }
     if (Get-Module -Name $Module.Name) {
         throw 'The seed fixture must remain unloaded.'
     }
-    $Session.Evidence.SeedHasPmuDependency = $false
-    $Session.Evidence.SeedWasLoaded = $false
 }
 
 function Get-QualificationPlan {
@@ -70,6 +80,17 @@ function Get-QualificationPlan {
         [System.Management.Automation.PSModuleInfo]$Module
     )
 
+    $parameters = Get-QualificationPlanParameter -Session $Session -Module $Module
+    $plan = Get-PSModuleUpdate @parameters
+    Assert-QualificationPublicObject $plan
+    Assert-QualificationSelectedTarget -Session $Session -Plan $plan
+    Assert-QualificationPlanIdentity -Session $Session -Module $Module -Plan $plan
+    $Session.Evidence.Plan = $plan
+    $plan
+}
+
+function Get-QualificationPlanParameter {
+    param([object]$Session, [System.Management.Automation.PSModuleInfo]$Module)
     $parameters = @{
         Module = $Module
         Policy = (Get-QualificationPolicy $Session)
@@ -77,22 +98,27 @@ function Get-QualificationPlan {
     if ($Session.Credential) {
         $parameters.Credential = $Session.Credential
     }
+    Initialize-QualificationPlanSource -Session $Session -Parameters $parameters
+    return $parameters
+}
+
+function Initialize-QualificationPlanSource {
+    param([object]$Session, [hashtable]$Parameters)
     if ($Session.Options.Scenario -eq 'Gallery') {
-        $parameters.Repository = $Session.RepositoryName
+        $Parameters.Repository = $Session.RepositoryName
     } else {
-        $parameters.RepositoryUri = [uri]$Session.Options.RepositoryUri
+        $Parameters.RepositoryUri = [uri]$Session.Options.RepositoryUri
     }
-    $plan = Get-PSModuleUpdate @parameters
-    Assert-QualificationPublicObject $plan
-    if ($plan.TargetVersion -cne $Session.Options.TargetVersion) {
+}
+
+function Assert-QualificationSelectedTarget {
+    param([object]$Session, [object]$Plan)
+    if ($Plan.TargetVersion -cne $Session.Options.TargetVersion) {
         throw 'PMU selected a different exact version.'
     }
-    if ($plan.RepositoryUri -cne $Session.Options.RepositoryUri) {
+    if ($Plan.RepositoryUri -cne $Session.Options.RepositoryUri) {
         throw 'PMU changed the selected source.'
     }
-    Assert-QualificationPlanIdentity $Session $Module $plan
-    $Session.Evidence.Plan = $plan
-    $plan
 }
 
 function Test-QualificationWhatIf {
@@ -116,6 +142,15 @@ function Assert-QualificationInstalledResult {
     )
 
     Assert-QualificationPublicObject $Result
+    Assert-QualificationInstallationIdentity -Plan $Plan -Result $Result
+    Assert-QualificationResultStatus $Result
+    Assert-QualificationDestination $Result.InstalledPath "$($Session.Root)/home"
+    $Session.Evidence.Result = $Result
+    $Session.Evidence.CredentialFree = $true
+}
+
+function Assert-QualificationInstallationIdentity {
+    param([object]$Plan, [object]$Result)
     foreach ($field in @('ModuleName', 'ModuleGuid', 'RepositoryUri', 'Scope', 'ActiveVersion', 'TargetVersion')) {
         if ($Result.$field -cne $Plan.$field) {
             throw 'Installation result does not match the source-bound plan.'
@@ -127,10 +162,6 @@ function Assert-QualificationInstalledResult {
     if ($Result.VerificationStatus -ne 'Verified') {
         throw 'The installed package was not verified.'
     }
-    Assert-QualificationResultStatus $Result
-    Assert-QualificationDestination $Result.InstalledPath "$($Session.Root)/home"
-    $Session.Evidence.Result = $Result
-    $Session.Evidence.CredentialFree = $true
 }
 
 function Assert-QualificationPlanIdentity {
@@ -140,12 +171,7 @@ function Assert-QualificationPlanIdentity {
         [object]$Plan
     )
 
-    if ($Plan.ModuleGuid -ne $Module.Guid) {
-        throw 'Plan identity differs from the independent installed module.'
-    }
-    if ($Plan.InstalledVersion -cne $Session.Options.SeedVersion) {
-        throw 'Plan observed a different installed version.'
-    }
+    Assert-QualificationPlanSeed -Session $Session -Module $Module -Plan $Plan
     Assert-QualificationUnloadedState $Plan
     if ($Plan.Scope -ne 'CurrentUser') {
         throw 'Plan changed the approved isolated scope.'
@@ -155,20 +181,35 @@ function Assert-QualificationPlanIdentity {
     }
 }
 
+function Assert-QualificationPlanSeed {
+    param([object]$Session, [System.Management.Automation.PSModuleInfo]$Module, [object]$Plan)
+    if ($Plan.ModuleGuid -ne $Module.Guid) {
+        throw 'Plan identity differs from the independent installed module.'
+    }
+    if ($Plan.InstalledVersion -cne $Session.Options.SeedVersion) {
+        throw 'Plan observed a different installed version.'
+    }
+}
+
 function Assert-QualificationResultStatus {
     param([object]$Result)
-    if ($Result.SchemaVersion -ne 1) {
-        throw 'Unexpected public result schema.'
-    }
-    if ($Result.Outcome -ne 'Installed') {
-        throw 'Expected a verified new installation.'
-    }
+    Assert-QualificationResultSchema -Result $Result
     if ($Result.RestartRequired) {
         throw 'An unloaded module should not require restart.'
     }
     Assert-QualificationUnloadedState $Result
     if (Get-Module -Name $Result.ModuleName) {
         throw 'PMU unexpectedly loaded the independent target.'
+    }
+}
+
+function Assert-QualificationResultSchema {
+    param([object]$Result)
+    if ($Result.SchemaVersion -ne 1) {
+        throw 'Unexpected public result schema.'
+    }
+    if ($Result.Outcome -ne 'Installed') {
+        throw 'Expected a verified new installation.'
     }
 }
 
@@ -193,13 +234,18 @@ function Test-QualificationSourcePolicy {
     try {
         Get-PSModuleUpdate -Module $Module -Repository $Session.RepositoryName -Policy $policy -Credential $Session.Credential | Out-Null
     } catch {
-        if ($_.FullyQualifiedErrorId -notmatch 'PMU\.RepositoryChanged') {
-            throw 'Unexpected source-policy rejection.'
-        }
-        $Session.Evidence.SourcePolicyMismatchRejected = $true
+        Assert-QualificationSourceRejection -Session $Session -Failure $_
         return
     }
     throw 'PMU accepted a mismatched source policy.'
+}
+
+function Assert-QualificationSourceRejection {
+    param([object]$Session, [System.Management.Automation.ErrorRecord]$Failure)
+    if ($Failure.FullyQualifiedErrorId -notmatch 'PMU\.RepositoryChanged') {
+        throw 'Unexpected source-policy rejection.'
+    }
+    $Session.Evidence.SourcePolicyMismatchRejected = $true
 }
 
 function Invoke-QualificationNonModule {
@@ -211,15 +257,20 @@ function Invoke-QualificationNonModule {
     $module = Initialize-QualificationNonModuleSeed $Session
     $before = @(Get-QualificationModuleTree $Session.Destination)
     $Session.Evidence.Phase = 'PMUNonModuleValidation'
+    Install-QualificationNonModule -Session $Session -Module $module
+    Assert-QualificationRepositoryState $before @(Get-QualificationModuleTree $Session.Destination)
+    $Session.Evidence.InstallationUnchanged = $true
+}
+
+function Install-QualificationNonModule {
+    param([object]$Session, [System.Management.Automation.PSModuleInfo]$Module)
     try {
-        $plan = Get-QualificationPlan $Session $module
+        $plan = Get-QualificationPlan $Session $Module
         Install-PSModuleUpdate -Update $plan -Credential $Session.Credential -AcceptLicense -TrustRepository -Confirm:$false | Out-Null
         throw 'PMU did not reject the nonmodule package.'
     } catch {
         Resolve-QualificationNonModuleRejection $Session $_
     }
-    Assert-QualificationRepositoryState $before @(Get-QualificationModuleTree $Session.Destination)
-    $Session.Evidence.InstallationUnchanged = $true
 }
 
 function Save-QualificationNonModuleArchive {
@@ -258,10 +309,18 @@ function Resolve-QualificationNonModuleRejection {
         $Session.Evidence.RejectionId = $Matches[0]
         return
     }
-    if ($Failure.FullyQualifiedErrorId -match 'PMU\.(DownloadFailed|DiscoveryFailed)') {
-        $Session.Evidence.Outcome = 'ProviderLimitation'
-        $Session.Evidence.PmuNonModuleValidation = 'NOT TESTED: provider rejected the package before PMU manifest validation.'
+    if (Test-QualificationProviderRejection -Session $Session -Failure $Failure) {
         return
     }
     throw 'Unexpected PMU nonmodule outcome; diagnostics withheld.'
+}
+
+function Test-QualificationProviderRejection {
+    param([object]$Session, [System.Management.Automation.ErrorRecord]$Failure)
+    if ($Failure.FullyQualifiedErrorId -match 'PMU\.(DownloadFailed|DiscoveryFailed)') {
+        $Session.Evidence.Outcome = 'ProviderLimitation'
+        $Session.Evidence.PmuNonModuleValidation = 'NOT TESTED: provider rejected the package before PMU manifest validation.'
+        return $true
+    }
+    return $false
 }

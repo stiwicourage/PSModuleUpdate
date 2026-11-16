@@ -10,19 +10,18 @@ BeforeAll {
         )
 
         @(
-            [pscustomobject]@{
-                Name = 'build'
-                ExitCode = $Build
-            }
-            [pscustomobject]@{
-                Name = 'unit'
-                ExitCode = $Unit
-            }
-            [pscustomobject]@{
-                Name = 'integration'
-                ExitCode = $Integration
-            }
+            Get-TestPhaseEntry -Name 'build' -ExitCode $Build
+            Get-TestPhaseEntry -Name 'unit' -ExitCode $Unit
+            Get-TestPhaseEntry -Name 'integration' -ExitCode $Integration
         )
+    }
+
+    function Get-TestPhaseEntry {
+        param([string]$Name, [int]$ExitCode)
+        [pscustomobject]@{
+            Name = $Name
+            ExitCode = $ExitCode
+        }
     }
 
     function Build-SummaryMap {
@@ -33,20 +32,19 @@ BeforeAll {
         )
 
         @{
-            unit = [pscustomobject]@{
-                Total = $UnitTotal
-                Passed = $UnitTotal - $UnitFailed
-                Failed = $UnitFailed
-                Skipped = 0
-                SkippedName = @()
-            }
-            integration = [pscustomobject]@{
-                Total = 2
-                Passed = 2 - $IntegrationFailed
-                Failed = $IntegrationFailed
-                Skipped = 0
-                SkippedName = @()
-            }
+            unit = Get-TestSummaryEntry -Total $UnitTotal -Failed $UnitFailed
+            integration = Get-TestSummaryEntry -Total 2 -Failed $IntegrationFailed
+        }
+    }
+
+    function Get-TestSummaryEntry {
+        param([int]$Total, [int]$Failed)
+        [pscustomobject]@{
+            Total = $Total
+            Passed = $Total - $Failed
+            Failed = $Failed
+            Skipped = 0
+            SkippedName = @()
         }
     }
 }
@@ -101,8 +99,15 @@ Describe 'Build-CiLaneManifest' -Tag 'BuildTooling' {
             OperatingSystem = 'Linux'
             PowerShellVersion = '7.4.21'
         }
-        $manifest = Build-CiLaneManifest -LaneId 'linux-x64-ps74' -CommitSha 'abc123' -Environment $environment -Mismatch @() `
-            -Phase (Build-PhaseList) -Summary (Build-SummaryMap) -Module @{ Pester = '5.7.1' }
+        $run = @{
+            Lane = @{ id = 'linux-x64-ps74' }
+            Identity = @{ commitSha = 'abc123' }
+            Actual = $environment
+            Mismatch = @()
+            Phase = (Build-PhaseList)
+            Summary = (Build-SummaryMap)
+        }
+        $manifest = Build-CiLaneManifest -Run $run -Module @{ Pester = '5.7.1' }
 
         $manifest.laneId | Should -Be 'linux-x64-ps74'
         $manifest.commitSha | Should -Be 'abc123'
@@ -114,8 +119,15 @@ Describe 'Build-CiLaneManifest' -Tag 'BuildTooling' {
     }
 
     It 'survives a JSON round trip with the status intact' {
-        $manifest = Build-CiLaneManifest -LaneId 'x' -CommitSha 'y' -Environment ([pscustomobject]@{}) -Mismatch @('bad') `
-            -Phase (Build-PhaseList) -Summary (Build-SummaryMap) -Module @{}
+        $run = @{
+            Lane = @{ id = 'x' }
+            Identity = @{ commitSha = 'y' }
+            Actual = [pscustomobject]@{}
+            Mismatch = @('bad')
+            Phase = (Build-PhaseList)
+            Summary = (Build-SummaryMap)
+        }
+        $manifest = Build-CiLaneManifest -Run $run -Module @{}
 
         ($manifest | ConvertTo-Json -Depth 6 | ConvertFrom-Json).status | Should -Be 'failed'
     }

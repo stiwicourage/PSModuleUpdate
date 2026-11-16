@@ -18,8 +18,9 @@ Use the narrower sibling skills when the task is more specific:
 
 - `tests/ArchitectureGuardrails.Tests.ps1`
 - `tests/*TestSupport.ps1`
-- `.github/actions/check-coverage/action.yml`
-- `scripts/build/ci/Invoke-NovaModuleToolsCI.ps1`
+- `.github/workflows/Tests.yml` (shared test/coverage caller)
+- `powershell-ci/actions/check-coverage/action.yml` (upstream coverage gate)
+- `powershell-ci/actions/nova-test/Invoke-NovaTestCI.ps1` (upstream Nova orchestration)
 - CodeScene review / safeguard tooling
 
 ## Expected practices

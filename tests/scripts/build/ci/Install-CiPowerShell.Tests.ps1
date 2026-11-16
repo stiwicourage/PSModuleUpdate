@@ -4,6 +4,62 @@ BeforeAll {
     $script:pinPath = Join-Path $root 'scripts/build/ci/PowerShellVersions.json'
 }
 
+Describe 'Qualified runtime installation transaction' -Tag 'CiNativeOverlay' {
+    BeforeEach {
+        $script:installRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $script:installRoot | Out-Null
+        Mock Resolve-CiPowerShellRelease {
+            @{ Version = '7.7.0'; FileName = 'archive.tar.gz'; Sha256 = ('a' * 64); HashSource = 'official hashes' }
+        }
+        Mock Invoke-WebRequest {}
+        Mock Assert-CiFileHash {}
+        Mock Expand-CiPowerShellArchive {}
+        Mock Install-CiNativeProvider { @{ actualVersion = '2.2.5' } }
+        Mock Assert-CiInstalledPowerShell {}
+    }
+
+    It 'overlays before returning the unchanged checksum and runtime identity' {
+        $installation = Install-CiPowerShell -Channel stable -RuntimeIdentifier osx-arm64 -InstallRoot $script:installRoot -PinPath $script:pinPath
+        $installation.nativeProvider.actualVersion | Should -Be '2.2.5'
+        $installation.sha256 | Should -Be ('a' * 64)
+        $installation.version | Should -Be '7.7.0'
+        $installation.channel | Should -Be 'stable'
+        Should -Invoke Assert-CiFileHash -Times 1 -Exactly -ParameterFilter { $ExpectedSha256 -eq ('a' * 64) }
+        Should -Invoke Install-CiNativeProvider -Times 1 -Exactly
+    }
+
+    It 'cleans only the newly extracted owned runtime when the overlay or probe fails' {
+        Mock Install-CiNativeProvider { throw 'native probe failed' }
+        $sentinel = Join-Path $script:installRoot 'shared.txt'
+        Set-Content $sentinel 'preserve'
+        { Install-CiPowerShell -Channel stable -RuntimeIdentifier osx-arm64 -InstallRoot $script:installRoot -PinPath $script:pinPath } | Should -Throw '*native probe failed*'
+        Test-Path $sentinel | Should -BeTrue
+        @(Get-ChildItem $script:installRoot -Directory -Filter 'pmu-ci-modules-*').Count | Should -Be 0
+    }
+
+    It 'does not extract or overlay a checksum failure' {
+        Mock Assert-CiFileHash { throw 'checksum mismatch' }
+        { Install-CiPowerShell -Channel stable -RuntimeIdentifier osx-arm64 -InstallRoot $script:installRoot -PinPath $script:pinPath } | Should -Throw '*checksum mismatch*'
+        Should -Invoke Expand-CiPowerShellArchive -Times 0
+        Should -Invoke Install-CiNativeProvider -Times 0
+    }
+
+    It 'cleans only its fresh runtime when extraction fails' {
+        Mock Expand-CiPowerShellArchive { throw 'extraction failed' }
+        { Install-CiPowerShell -Channel stable -RuntimeIdentifier osx-arm64 -InstallRoot $script:installRoot -PinPath $script:pinPath } | Should -Throw '*extraction failed*'
+        Test-Path $script:installRoot | Should -BeTrue
+        @(Get-ChildItem $script:installRoot -Directory -Filter 'pmu-ci-modules-*').Count | Should -Be 0
+        Should -Invoke Install-CiNativeProvider -Times 0
+    }
+
+    It 'cleans only its fresh runtime when the original runtime identity probe fails' {
+        Mock Assert-CiInstalledPowerShell { throw 'runtime identity differs' }
+        { Install-CiPowerShell -Channel stable -RuntimeIdentifier osx-arm64 -InstallRoot $script:installRoot -PinPath $script:pinPath } | Should -Throw '*runtime identity differs*'
+        Test-Path $script:installRoot | Should -BeTrue
+        @(Get-ChildItem $script:installRoot -Directory -Filter 'pmu-ci-modules-*').Count | Should -Be 0
+    }
+}
+
 Describe 'Get-CiPowerShellAssetName' -Tag 'BuildTooling' {
     It 'names the official archive for <RuntimeIdentifier>' -ForEach @(
         @{

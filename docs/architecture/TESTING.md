@@ -10,7 +10,7 @@ defined by `project.json`; the module root and manifest are generated under
 pwsh -NoLogo -NoProfile -File ./run.ps1
 ```
 
-GitHub Actions (`.github/workflows/ci.yml`) runs the same Nova build, unit and
+GitHub Actions (`.github/workflows/Run-Platform-Matrix.yml`) runs the same Nova build, unit and
 integration phases per platform lane through
 `./scripts/build/ci/Invoke-PlatformLane.ps1 -LaneId <lane-id>`; see
 [G4A4/PHASE1_IMPLEMENTATION.md](G4A4/PHASE1_IMPLEMENTATION.md).
@@ -44,8 +44,22 @@ enabled in `project.json`, targets the authored source paths, and writes JaCoCo
 to `artifacts/coverage.xml` with the configured 95 percent target. Integration
 tests remain a separate phase and do not generate the unit coverage report.
 The test/coverage workflow runs `Invoke-NovaTest` before `Test-NovaBuild` and
-uploads that report for CodeScene and Codecov; test counts alone do not
+uploads that report for CodeScene; test counts alone do not
 establish a measured coverage percentage.
+
+### Qualified native provider in CI
+
+The platform provisioner composes an owned runtime from the checksum-verified
+official PowerShell archive and exact PSGallery PowerShellGet 2.2.5. The
+qualified provider occupies that runtime's flat `Modules/PowerShellGet`
+directory; ambient PowerShell installations and user module stores are not
+changed. Provisioning and the aggregate gate retain the archive identity and
+check the native provider's source, requested/actual version and manifest path.
+
+This tests the selected PowerShell engine with PMU's already-qualified native
+provider. It does not qualify stock PowerShell 7.7's bundled PowerShellGet 2.2.6.
+Production still rejects unqualified provider versions, and native store,
+temporary-path and approved-destination safeguards remain unchanged.
 
 ### Native update transition
 

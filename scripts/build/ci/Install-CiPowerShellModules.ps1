@@ -7,6 +7,7 @@ param(
 . (Join-Path $PSScriptRoot 'CiDependencyRoot.ps1')
 
 $script:PinnedVersion = @{
+    PowerShellGet = '2.2.5'
     Pester = '5.7.1'
     'Microsoft.PowerShell.PSResourceGet' = '1.2.0'
 }
@@ -42,12 +43,13 @@ function Get-CiModuleSaveParameter {
 function Save-CiPowerShellModule {
     param(
         [string[]]$Name,
-        [Parameter(Mandatory)][string]$ModuleRoot
+        [Parameter(Mandatory)][string]$ModuleRoot,
+        [scriptblock]$Validation = { param($Path) Assert-CiDependencyClosure -ModuleRoot $Path }
     )
 
     $owner = New-CiDependencyRoot -Path $ModuleRoot
     try {
-        Save-CiModuleSet -Name $Name -ModuleRoot $owner.Path
+        Save-CiModuleSet -Name $Name -ModuleRoot $owner.Path -Validation $Validation
         return $owner
     } catch {
         Remove-CiDependencyRoot -Owner $owner
@@ -56,14 +58,14 @@ function Save-CiPowerShellModule {
 }
 
 function Save-CiModuleSet {
-    param([string[]]$Name, [string]$ModuleRoot)
+    param([string[]]$Name, [string]$ModuleRoot, [scriptblock]$Validation)
     $registered = Open-CiGallery
     try {
         $null = Assert-CiGallery
         foreach ($moduleName in $Name) {
             Save-CiModuleDownload (Get-CiModuleInstallParameter -Name $moduleName -ModuleRoot $ModuleRoot)
         }
-        Assert-CiDependencyClosure -ModuleRoot $ModuleRoot
+        & $Validation $ModuleRoot
     } finally {
         Close-CiGallery -Registered $registered
     }

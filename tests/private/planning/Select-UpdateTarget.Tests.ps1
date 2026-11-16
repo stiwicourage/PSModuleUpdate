@@ -11,4 +11,12 @@ Describe 'Select-UpdateTarget' -Tag 'PMU' {
     It 'fails discovery rather than manufacturing UpToDate on an empty feed' {
         { Select-UpdateTarget @() 'Stable' } | Should -Throw -ErrorId 'PMU.PackageNotFound'
     }
+    It 'retains the newest eligible original release when later entries are older or ineligible' {
+        $releases = @('2.0.0', '3.0.0', '1.0.0', '9.0.0-preview.1') | ForEach-Object {
+            [pscustomobject]@{ Version = ConvertTo-CompleteModuleVersion $_ }
+        }
+        $target = Select-UpdateTarget $releases 'Stable'
+        [object]::ReferenceEquals($target, $releases[1]) | Should -BeTrue
+        $target.Version.FullVersion | Should -BeExactly '3.0.0'
+    }
 }

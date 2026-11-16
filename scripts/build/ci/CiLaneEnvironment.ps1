@@ -13,13 +13,28 @@ function Get-CiLaneEnvironment {
     [CmdletBinding()]
     param()
 
+    $environment = Get-CiRuntimeEnvironment
+    foreach ($entry in (Get-CiRunnerEnvironment).GetEnumerator()) {
+        $environment[$entry.Key] = $entry.Value
+    }
+    return [pscustomobject]$environment
+}
+
+function Get-CiRuntimeEnvironment {
+    param()
     $runtime = [System.Runtime.InteropServices.RuntimeInformation]
-    return [pscustomobject][ordered]@{
+    return [ordered]@{
         OperatingSystem = Get-CiLaneOperatingSystem
         OsArchitecture = $runtime::OSArchitecture.ToString()
         ProcessArchitecture = $runtime::ProcessArchitecture.ToString()
         PowerShellVersion = $PSVersionTable.PSVersion.ToString()
         PowerShellEdition = $PSVersionTable.PSEdition
+    }
+}
+
+function Get-CiRunnerEnvironment {
+    param()
+    return [ordered]@{
         RunnerOs = $env:RUNNER_OS
         RunnerArch = $env:RUNNER_ARCH
         RunnerEnvironment = $env:RUNNER_ENVIRONMENT
@@ -29,6 +44,7 @@ function Get-CiLaneEnvironment {
 }
 
 function Get-CiEqualityMismatch {
+    [OutputType([string])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Label,
@@ -42,6 +58,7 @@ function Get-CiEqualityMismatch {
 }
 
 function Get-CiChannelMismatch {
+    [OutputType([string])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Channel,
@@ -69,6 +86,7 @@ function Get-CiRunnerMismatch {
 }
 
 function Test-CiLaneEnvironment {
+    [OutputType([string])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]$Expected,
@@ -76,12 +94,22 @@ function Test-CiLaneEnvironment {
         [switch]$RequireGitHubHosted
     )
 
+    Get-CiRuntimeMismatch -Expected $Expected -Actual $Actual
+    Get-CiChannelMismatch -Channel $Expected.PowerShellChannel -Version $Actual.PowerShellVersion
+    Get-CiRunnerMismatch -Expected $Expected -Actual $Actual
+    Get-CiHostMismatch -Actual $Actual -RequireGitHubHosted:$RequireGitHubHosted
+}
+
+function Get-CiRuntimeMismatch {
+    param($Expected, $Actual)
     Get-CiEqualityMismatch -Label 'Operating system' -Actual $Actual.OperatingSystem -Expected $Expected.OperatingSystem
     Get-CiEqualityMismatch -Label 'OS architecture' -Actual $Actual.OsArchitecture -Expected $Expected.Architecture
     Get-CiEqualityMismatch -Label 'Process architecture' -Actual $Actual.ProcessArchitecture -Expected $Expected.Architecture
     Get-CiEqualityMismatch -Label 'PowerShell version' -Actual $Actual.PowerShellVersion -Expected $Expected.PowerShellVersion
-    Get-CiChannelMismatch -Channel $Expected.PowerShellChannel -Version $Actual.PowerShellVersion
-    Get-CiRunnerMismatch -Expected $Expected -Actual $Actual
+}
+
+function Get-CiHostMismatch {
+    param($Actual, [switch]$RequireGitHubHosted)
     if ($Actual.PowerShellEdition -ne 'Core') {
         "PowerShell edition is '$( $Actual.PowerShellEdition )' but 'Core' is required."
     }

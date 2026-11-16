@@ -4,17 +4,9 @@ function Write-InstallationPhase {
         [string]$Phase
     )
 
-    if ([Console]::IsOutputRedirected) {
+    $hostState = Get-InstallationProgressHost
+    if ($hostState.OutputRedirected -or $hostState.NonInteractive) {
         return
     }
-    if ([Environment]::GetCommandLineArgs() -contains '-NonInteractive') {
-        return
-    }
-    $progressId = 17330 # Stable native progress activity for the single-module workflow.
-    $activity = "Updating $($Plan.ModuleName)"
-    if ($Phase -eq 'Completed') {
-        Write-Progress -Id $progressId -Activity $activity -Completed
-        return
-    }
-    Write-Progress -Id $progressId -Activity $activity -Status $Phase
+    Write-InstallationProgress $Plan $Phase
 }

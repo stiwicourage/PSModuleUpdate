@@ -8,13 +8,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Add `Install-PSModuleUpdate -ReplaceUnmanagedInstallation` as an explicit,
+  default-off opt-in for manually copied installations lacking root
+  `PSGetModuleInfo.xml`. Install the exact planned target through the native
+  provider, using Force only for a target-directory collision. Present unreadable
+  or mismatching metadata still fails; identity, repository, scope, verification,
+  backup, journal and rollback safeguards remain enforced.
+- Add `Get-PSModuleUpdateTargetManifest` for exact-candidate manifest inspection
+  from an unmodified live plan, using owned staging without installation or
+  target import. Complete manifest PrivateData is returned as data only.
+  An internal manifest binding rejects changed content during later install
+  staging, including same-version republishing, before installed-file mutation.
+  Per-call credentials, trust/license consent, source binding and cleanup remain
+  enforced. Planning and install WhatIf remain acquisition-free.
+
 ### Changed
+
+- Reuse `powershell-ci` for test/coverage, security, and publish workflows while
+  retaining the six local platform/runtime lanes, their SHA pins, dependency
+  isolation, skip classification, artifact checks, and 95% source-coverage gate.
+  Shared callers follow the common module convention with PSScriptAnalyzer
+  1.25.0, both release documents, daily tests, weekly security checks, and grouped
+  weekly GitHub Actions dependency updates. PMU adds isolated dependencies and
+  exact Pester 5.7.1 while shared defaults own JaCoCo artifacts and analysis. Publishing follows the
+  GerberCore workflow and moves `CHANGELOG.md` and `RELEASE_NOTE.md` together.
+  PSModuleUpdate references use `develop` for qualification before moving
+  to a separately released shared-workflow tag.
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+
+- Provision exact qualified PowerShellGet 2.2.5 inside owned CI runtimes and
+  verify its origin, loaded version and manifest path in the aggregate gate.
+  This preserves PMU's native provider requirement when newer PowerShell
+  archives bundle an unqualified version; ambient installations are unchanged.
+- Isolate the Windows Documents-folder fact in installation-root tests so
+  Linux runners do not depend on a host Documents folder. Native path
+  selection, path-safety validation and no-write assertions are unchanged.
+- Record the qualified PSResourceGet 1.2.0 availability in CI lane manifests
+  even when the selected PowerShell runtime bundles a newer provider, so the
+  aggregate gate does not reject an available required dependency.
+- Normalize PSResourceGet's structured `PackageNotFound` discovery error to
+  terminating `PMU.PackageNotFound`, including command-suffixed provider IDs.
+  Missing packages produce no update plan or fallback query; provider
+  diagnostics remain withheld. Unrelated discovery, authentication and
+  permission failures retain their existing error contracts.
 
 ### Security
 
@@ -104,4 +145,3 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Pass the owned temporary dependency root between `Run Tests` workflow steps
   so NovaModuleTools is discoverable for CI and changelog validation, with
   ownership-validated cleanup even after a failed consumer step.
-

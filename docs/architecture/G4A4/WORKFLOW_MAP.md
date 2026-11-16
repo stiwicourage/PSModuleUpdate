@@ -1,4 +1,46 @@
-# Existing GitHub Actions workflow map
+# GitHub Actions workflow ownership
+
+## Current shared-workflow migration
+
+PSModuleUpdate keeps `.github/workflows/Run-Platform-Matrix.yml` and `scripts/build/ci/` lane
+qualification locally. Six Windows/Linux x64 and macOS ARM64 lanes cover
+PowerShell 7.4 and stable, with unchanged provisioning, exact skip policy,
+full-SHA action pins, artifact validation, and aggregate `ci-gate`.
+
+| Caller | Shared owner | Project-specific contract |
+| --- | --- | --- |
+| `Tests.yml` | `powershell-ci/.github/workflows/tests.yml` | Common analyzer 1.25.0 and both release files; PMU isolation/Pester 5.7.1 exceptions; JaCoCo 95%; shared analysis/artifact defaults |
+| `Publish.yml` | `powershell-ci/.github/workflows/publish.yml` | Main push/manual dispatch, Test-NovaBuild, CI-release mode, isolated dependencies |
+| `Security.yml` | Shared CodeQL, SARIF analyzer, dependency-review workflows | Common develop push/PR and weekly Monday schedule; PR-only dependency review with shared default severity |
+| `.github/dependabot.yml` | GitHub Dependabot | Common weekly GitHub Actions updates and powershell-ci group |
+
+The shared test workflow owns generic Nova orchestration and coverage uploads.
+Each isolated job owns its dependency root and cleanup; imports do not survive
+fresh PowerShell steps. `run.ps1` and the local analyzer wrapper remain valid
+developer entrypoints. Consumer tests cover caller contracts, not upstream
+dependency implementation.
+
+Only PSModuleUpdate uses `@develop` for qualification. GerberCore and
+SemanticRelease retain `@0.1.1`, including GerberCore's direct install-action
+ref; Gerber.AzureDevOps retains its existing `@0.1.0`. PSModuleUpdate moves to a
+real release tag only after upstream qualification and a separately authorized
+release. Record the
+resolved upstream commit for every run; a local sibling change is not
+automatically available to GitHub.
+
+Publish follows GerberCore: stable release publishes and updates main, then
+prepares/force-updates develop; dispatch on develop publishes a prerelease and
+bumps the next version. Both release documents are moved during stable release.
+There is no newly introduced cross-workflow dependency or environment-approval
+gate. Successful publisher build/tests are not evidence that all six matrix
+jobs passed; hosted branch-protection settings are configured separately.
+
+## Historical discovery snapshot
+
+The sections below preserve the original G-4A4 investigation. Statements about
+missing PMU workflows, remotes, or copied actions describe that historical
+checkout and are superseded by the current ownership map above. They are not
+claims about current hosted qualification.
 
 ## TL;DR
 

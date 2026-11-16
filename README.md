@@ -15,7 +15,9 @@ installation. It targets PowerShell 7.4+ and uses
 `Microsoft.PowerShell.PSResourceGet` 1.2.0 for discovery and declares that exact
 version as a module dependency. The unreleased update implementation uses
 PowerShellGet 2.2.5 and PackageManagement 1.4.8.1 for staging and native
-`Update-Module`, without Force or an `Install-Module` fallback. It never
+`Update-Module` for managed installations. An explicit unmanaged-installation
+opt-in uses exact-version `Install-Module`, with Force only for a target-directory
+collision. It never
 persistently configures consumer repositories, stores credentials, elevates
 privileges, or reloads the updated module.
 
@@ -23,7 +25,7 @@ privileges, or reloads the updated module.
 or `preview03`, matching the Gerber/NovaModuleTools release workflow.
 PowerShellGet 2.2.5 rejects dotted labels such as `preview.2`; those labels remain
 valid for PMU's semantic comparison but are outside this native update scope.
-No Force, beta provider or alternate installer is introduced to bypass that
+No beta provider or alternate installer is introduced to bypass that
 limitation. See
 [current qualification](docs/architecture/TESTING.md#native-update-transition)
 for successful Gallery evidence and the remaining gates. Historical G-4A3
@@ -46,6 +48,53 @@ After reviewing the plan, install it:
 ```powershell
 $update | Install-PSModuleUpdate
 ```
+
+For a manually copied development installation with no root
+`PSGetModuleInfo.xml`, explicitly opt in after reviewing the plan:
+
+```powershell
+$update | Install-PSModuleUpdate -ReplaceUnmanagedInstallation
+```
+
+The switch defaults to off; without it, missing native metadata still fails
+with `PMU.UnsupportedInstallation`. Present-but-unreadable or mismatching
+metadata is never treated as unmanaged. The opt-in installs only the exact
+planned version from the bound repository into the selected scope. Native
+Force is used only if the target directory already exists, after the existing
+GUID checks and verified backup. Tree verification, journaling, and best-effort
+rollback remain in effect, including same-base replacement. Planning does not
+require the switch, and `-WhatIf` never installs or replaces files.
+
+### Inspect the exact target manifest
+
+Consumers that must examine candidate metadata before approval can use the same
+unmodified live plan:
+
+```powershell
+$target = $update | Get-PSModuleUpdateTargetManifest
+$target.Manifest.PrivateData
+$update | Install-PSModuleUpdate -WhatIf
+```
+
+Inspection downloads only the exact planned version from its bound repository.
+It safely imports manifest **data**, not the module, into a hashtable; it never
+executes the target's RootModule or scripts, installs it, or interprets
+consumer-specific metadata. The result exposes `Manifest` (including complete
+`PrivateData`), `ModuleName`, `ModuleGuid`, exact semantic `Version`, and sanitized
+`RepositoryUri`.
+
+The public plan is unchanged. PMU privately binds the inspected manifest bytes
+to that live plan. Installation stages again and rejects differing manifest
+content with `PMU.TargetManifestChanged` before changing installed files,
+including same-version republishing. Editing the returned hashtable cannot
+change the binding. Obtain a fresh plan to approve changed content; even
+whitespace changes require reinspection. Uninspected plans retain their existing
+installation behavior. Planning and install `-WhatIf` remain download-free.
+
+Pass `-Credential`, `-TrustRepository`, and `-AcceptLicense` independently when
+needed for inspection, with the same meanings as installation. No credential or
+consent is retained for a later call. Owned temporary registrations and the
+inspection workspace are cleaned on success and failure.
 
 Installation uses native PowerShell confirmation. For automation,
 `-Confirm:$false` suppresses that confirmation only; it does not accept a
@@ -119,6 +168,49 @@ does not read a particular environment variable or install credential providers.
 Plans are live in-process objects, not portable authorization records; obtain
 a new plan after restarting the shell or changing installation/repository state.
 
+### Public installation identity and scope
+
+| Public field | Meaning |
+|---|---|
+| `Plan.ModuleName`, `Plan.ModuleGuid` | Validated module identity |
+| `Plan.Scope` | Explicitly selected `CurrentUser` or `AllUsers` scope |
+| `Plan.DestinationRoot` | Selected scope's Modules root |
+| `Plan.InstalledManifestPath` | Selected existing manifest file |
+| `Plan.InstalledVersion` | Complete existing version in that scope |
+| `Plan.TargetVersion`, `Plan.TargetNumericVersion` | Exact semantic target and numeric directory version |
+| `Plan.TargetInstalledPath` | Exact target **directory** |
+| `Result.InstalledPath` | Verified target directory when `VerificationStatus` is `Verified`; otherwise the existing selected directory |
+| `Result.ModuleName`, `Result.ModuleGuid`, `Result.Scope` | The same selected identity and scope |
+| `Result.InstalledVersion`, `Result.TargetVersion` | Observed installed and approved target complete versions |
+
+After verified installation, the exact manifest file is
+`Join-Path $result.InstalledPath "$($result.ModuleName).psd1"`.
+There is no `Result.InstalledManifestPath` property. A later name-only module
+search does not preserve this exact identity.
+
+`Plan.ObservedInstalledVersions` entries expose `Scope`, `Root`, `ManifestPath`,
+`Guid`, `FullVersion`, `NumericVersion`, and `Prerelease` for discovered copies
+in both supported scopes. These observations are returned only after successful
+planning in a scope with an existing installation. PMU does not publicly infer
+scope from a supplied module reference or silently choose the reference's scope:
+`Policy.Scope` defaults to CurrentUser. Consumers preserving an existing scope
+must classify the reference against the supported standard roots and explicitly
+pass the correct scope. Unknown/nonstandard layouts must fail closed.
+
+Supported roots are `MyDocuments/PowerShell/Modules` and
+`ProgramFiles/PowerShell/Modules` on Windows, and
+`$HOME/.local/share/powershell/Modules` and
+`/usr/local/share/powershell/Modules` on Linux/macOS, for CurrentUser and AllUsers
+respectively. Windows MyDocuments is obtained through
+`[Environment]::GetFolderPath('MyDocuments')`, not a guessed profile path.
+Supported manifests use `<root>/<name>/<numeric-version>/<name>.psd1`.
+
+Missing per-call credentials and provider authentication failures use
+`PMU.AuthenticationFailed`; there is no separate credential-required error ID.
+Trust, license, and filesystem permission errors remain
+`PMU.RepositoryTrustRequired`, `PMU.LicenseAcceptanceRequired`, and
+`PMU.PermissionDenied`.
+
 Repository selection is always caller-owned and source-bound. PMU never
 searches another feed just because it contains the same package name. PSGallery,
 public NuGet v3 repositories such as NuGet.org, and authenticated private
@@ -184,6 +276,27 @@ Follow this workflow when working with Copilot in this repository.
     - Use `/agent release-manager`, `.github/agents/release-manager.agent.md`, and `.github/prompts/prepare-release.prompt.md` when preparing the pull request summary and release-facing follow-up.
 
 ## Nova project expectations
+
+Tests, coverage, security analysis, and publishing reuse
+[powershell-ci](https://github.com/stiwicourage/powershell-ci). The callers request
+isolated dependencies and exact Pester 5.7.1; `project.json` continues to require
+PSResourceGet 1.2.0 and source coverage of at least 95%. Local validation still
+uses `run.ps1`; the six-lane platform matrix and its evidence gate remain owned
+by this repository.
+
+All four shared-CI module consumers use the same test, publish, security, and
+weekly Dependabot convention, with PSScriptAnalyzer pinned to 1.25.0 and both
+release documents validated. PMU adds only its isolated-dependency and Pester
+requirements. Shared defaults own analysis and coverage artifact configuration.
+
+PSModuleUpdate's shared workflow references temporarily use `@develop` during
+testing. GerberCore and SemanticRelease retain `@0.1.1`; Gerber.AzureDevOps
+retains its existing `@0.1.0`.
+The shared changes must remain compatible with those tagged callers.
+PSModuleUpdate moves to a released version tag only after it exists and the
+shared changes are qualified.
+Publishing follows GerberCore's stable/prerelease flow and moves both release
+documents; CI migration does not itself authorize publishing or branch mutation.
 
 - Use Nova commands and `project.json` for build, test, package, and release behavior.
 - Treat `project.json` `Manifest.PowerShellHostVersion` as the compatibility target for PowerShell code, tests, and examples. If it is `5.1`, do not introduce PowerShell 7.x-only features.

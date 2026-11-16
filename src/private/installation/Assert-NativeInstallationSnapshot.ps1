@@ -9,6 +9,6 @@ function Assert-NativeInstallationSnapshot {
     }
     Assert-PackageIdentity (Get-ManifestIdentity (Join-Path $Context.Snapshot.Path "$($operation.Plan.ModuleName).psd1")) $expected
     Assert-FileTreeEqual @($Context.Snapshot.Tree) @(Get-FileTreeInventory $Context.Snapshot.Path) 'PMU.InstalledStateChanged'
-    $source = Get-NativeInstalledSource $operation $Context.Snapshot.Path
-    Assert-MatchingProperty $source $Context.Snapshot.Source @('Name', 'Uri') 'PMU.InstalledStateChanged'
+    $source = Get-NativeSelectedSource $operation $Context.Snapshot.Path $Context.Snapshot.Source.Unmanaged
+    Assert-MatchingProperty $source $Context.Snapshot.Source @('Name', 'Uri', 'Unmanaged') 'PMU.InstalledStateChanged'
 }

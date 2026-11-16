@@ -17,4 +17,15 @@ Describe 'Write-ProviderError' -Tag 'PMU' {
             ($_ | Out-String) | Should -Not -Match 'secret-token-fixture'
         }
     }
+    It 'prioritizes authentication over simultaneous access-denial hints without exposing provider details' {
+        $failure = [Management.Automation.ErrorRecord]::new(
+            [UnauthorizedAccessException]::new('401 provider-secret-fixture'),
+            'PrivateProviderFailure',
+            [Management.Automation.ErrorCategory]::PermissionDenied,
+            $null
+        )
+        $caught = { Write-ProviderError $failure 'PMU.DiscoveryFailed' } |
+            Should -Throw -ErrorId 'PMU.AuthenticationFailed' -PassThru
+        "$caught" | Should -Not -Match 'provider-secret-fixture'
+    }
 }

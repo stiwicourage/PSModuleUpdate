@@ -1,5 +1,41 @@
 # Security and credential model
 
+## Current implementation boundary
+
+The local `Run-Platform-Matrix.yml` remains read-only, secret-free, full-SHA
+pinned, and restricted to owned fixtures and evidence. Its isolation, cleanup,
+runtime guards, and skip policy are unchanged.
+
+`Tests.yml` opts into isolated shared dependencies with owned cleanup and exact
+provider/Pester imports. It retains the existing coverage services' secret
+contract; it is not a blanket secret-free workflow. Fork PRs do not receive
+repository secrets, and unavailable service verification must not be reported
+as passed.
+
+`Security.yml` grants security-event/package read or PR-comment permissions
+only to the job that requires them. Dependency review is PR-only; CodeQL and
+SARIF use the common weekly schedule across the four module consumers. No workflow uses
+`pull_request_target`.
+
+`Publish.yml` calls the same shared publisher as GerberCore with isolated
+dependencies. It retains write permissions and an API key for main/manual
+publication, including existing commit/tag and develop force-update behavior.
+There is no new environment approval, branch protection, or dependency on the
+platform workflow. Those protections require separate configuration and cannot
+be inferred from this migration.
+
+Only PSModuleUpdate's shared refs temporarily follow `develop` and later move
+to an actual release tag. Reference projects retain their existing tags.
+The platform matrix's stricter SHA-pin policy does not change. Validate the
+resolved upstream revision as well as the caller; older shared tags already
+use internal develop-action references.
+
+## Historical G-4A4 proposal
+
+The remaining sections are the earlier proposed qualification/security design.
+Proposed environments and release-gate workflows below are not implemented by
+the shared-workflow migration.
+
 ## TL;DR
 
 Pull-request jobs are secret-free and read-only. Cross-platform jobs use only

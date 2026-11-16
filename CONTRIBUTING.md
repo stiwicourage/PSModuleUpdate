@@ -58,7 +58,7 @@ Recommended flow:
     - Use `/agent release-manager`, `.github/agents/release-manager.agent.md`, and `.github/prompts/prepare-release.prompt.md` when release-facing files change.
 
 The [G-4A4 plan](docs/architecture/G4A4/README.md) designs the GitHub Actions matrix and release gating. Phase 1
-(`.github/workflows/ci.yml`, `scripts/build/ci/`) has executed on GitHub: both macOS lanes passed, while
+(`.github/workflows/Run-Platform-Matrix.yml`, formerly `ci.yml`, and `scripts/build/ci/`) has executed on GitHub: both macOS lanes passed, while
 Windows/Linux fixes still require a successful rerun; see
 [PHASE1_IMPLEMENTATION.md](docs/architecture/G4A4/PHASE1_IMPLEMENTATION.md) for triggers, lanes, the `ci-gate`,
 artifacts and local validation. To reproduce a lane locally, run
@@ -71,6 +71,9 @@ it does not install dependencies in CurrentUser or AllUsers. Existing
 PSResourceGet repository state is preserved by the provider fixtures, not by
 assuming that `HOME` or `PSModulePath` redirects registrations. Unexpected
 skips and incomplete XML/log/runtime evidence fail the lane.
+The owned PowerShell runtime also receives exact qualified PowerShellGet 2.2.5;
+see [native provider composition](docs/architecture/TESTING.md#qualified-native-provider-in-ci).
+This does not change or qualify the native provider in an ambient installation.
 
 Dependency provisioning checks that PSGallery points to its official endpoint.
 If explicit native default registration is needed, it is removed afterward only
@@ -80,18 +83,40 @@ source, version selection and owned destination. Exhausted retries or a failed
 isolated import probe still fail provisioning and remove its owned dependency
 directory.
 
-The separate `Run Tests` workflow also saves dependencies to an owned temporary
-root. Each PowerShell consumer step uses the install step's `moduleRoot` output
-to set an isolated `PSModulePath`; installed modules and imports do not carry
-over automatically between steps. An always-run cleanup step validates ownership
-before removing that root, including when tests or changelog validation fail.
-Its CI script runs `Invoke-NovaTest` before `Test-NovaBuild`: unit tests generate
+The separate `Run Tests` workflow calls the shared
+[`powershell-ci` test workflow](https://github.com/stiwicourage/powershell-ci).
+Its `dependency-mode: isolated` opt-in saves dependencies to an owned temporary
+root and passes the isolated `PSModulePath` into every consumer process.
+Installed modules and imports do not carry over automatically between steps.
+Shared cleanup validates ownership even when tests or changelog validation fail.
+The shared Nova action runs `Invoke-NovaTest` before `Test-NovaBuild`: unit tests generate
 `artifacts/coverage.xml` from the enabled `project.json` JaCoCo configuration,
-and the uploaded artifact supplies CodeScene and Codecov. Integration results
+and the uploaded artifact supplies CodeScene. Integration results
 alone are not coverage evidence.
 
+`Tests.yml`, `Publish.yml`, and `Security.yml` are thin shared-workflow callers;
+`Run-Platform-Matrix.yml` and its lane/gate tooling remain local. Tests request
+Pester 5.7.1 and the common PSScriptAnalyzer 1.25.0, validate both release documents, and preserve
+the 95% source-coverage threshold. Publish uses `Test-NovaBuild` and Nova's CI
+release mode, matching GerberCore.
+
+The four shared-CI module consumers use one caller convention: daily tests,
+weekly shared security checks, and grouped weekly GitHub Actions dependency
+updates. Only PMU's isolation/Pester requirements and Gerber.AzureDevOps'
+existing build-validation and publisher exceptions differ. Shared defaults
+control analyzer rules, analysis, coverage artifact names, and review severity.
+The existing settings file still belongs to local `run.ps1` validation.
+
+During validation only PSModuleUpdate uses `@develop`. GerberCore and
+SemanticRelease retain `@0.1.1`, including GerberCore's direct install-action
+reference; Gerber.AzureDevOps retains its existing `@0.1.0`. Record the resolved
+shared commit alongside each tested consumer revision. After a separately
+authorized upstream release,
+switch PSModuleUpdate to its actual tag and requalify; an outer tag does not
+freeze shared actions that still reference `@develop`.
+
 Workflow policy tests distinguish the platform matrix from the other workflows.
-`ci.yml` retains full-SHA action pins, fixed runner labels, read-only permissions,
+`Run-Platform-Matrix.yml` retains full-SHA action pins, fixed runner labels, read-only permissions,
 and no secrets or publishing. Separate test/coverage, analysis, dependency-review,
 and publish workflows may use version-tagged actions, moving runner labels, and
 their purpose-specific permissions and secrets. All workflows reject

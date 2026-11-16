@@ -2,7 +2,7 @@ BeforeAll {
     $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $workflowDirectory = Join-Path $root '.github/workflows'
     $script:workflowFile = @(Get-ChildItem -LiteralPath $workflowDirectory -Filter '*.yml' -File)
-    $script:ci = Get-Content -LiteralPath (Join-Path $workflowDirectory 'ci.yml') -Raw
+    $script:ci = Get-Content -LiteralPath (Join-Path $workflowDirectory 'Run-Platform-Matrix.yml') -Raw
     $script:publish = Get-Content -LiteralPath (Join-Path $workflowDirectory 'Publish.yml') -Raw
 }
 
@@ -16,7 +16,7 @@ Describe 'CI workflow security and gate policy' -Tag 'BuildTooling', 'WorkflowPo
     It 'pins every external platform-matrix action to a full commit SHA' {
         $uses = @([regex]::Matches($script:ci, '(?m)^\s*(?:-\s*)?uses:\s*(\S+)') | ForEach-Object { $_.Groups[1].Value })
         foreach ($reference in $uses | Where-Object { -not $_.StartsWith('./') }) {
-            $reference | Should -Match '@[0-9a-f]{40}$' -Because "ci.yml must pin '$reference'"
+            $reference | Should -Match '@[0-9a-f]{40}$' -Because "Run-Platform-Matrix.yml must pin '$reference'"
         }
     }
 
@@ -38,10 +38,10 @@ Describe 'CI workflow security and gate policy' -Tag 'BuildTooling', 'WorkflowPo
         $script:publish | Should -Not -Match '(?m)^  pull_request(?:_target)?:'
     }
 
-    It 'exposes the isolated CI modules to later publish steps through PSModulePath' {
-        $script:publish | Should -Match '(?s)id:\s*modules\s*\r?\n\s+run:\s*\./scripts/build/ci/Install-CiPowerShellModules\.ps1'
-        $script:publish | Should -Match 'Get-CiIsolatedModulePath -ModuleRoot \$env:CI_MODULE_ROOT'
-        $script:publish | Should -Match 'PSModulePath=.*>> \$env:GITHUB_ENV'
+    It 'requires the shared publisher to isolate dependencies instead of using an ambient install command' {
+        $script:publish | Should -Match 'uses: stiwicourage/powershell-ci/\.github/workflows/publish\.yml@\S+'
+        $script:publish | Should -Match 'dependency-mode: isolated'
+        $script:publish | Should -Not -Match 'install-command:'
     }
 
     It 'supports pull requests into develop and main, pushes outside main, plus reuse' {

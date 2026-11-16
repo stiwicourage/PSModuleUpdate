@@ -8,5 +8,18 @@ Describe 'Repair-RepositoryReceipt' -Tag 'PMUUriBridge' {
             Repair-RepositoryReceipt $TestDrive
             Should -Invoke Clear-OwnedRepositoryReceipt -Times 0
         }
+        It 'removes an abandoned durable receipt only after confirming its owner and registration are absent' {
+            Initialize-ControlledDirectory $TestDrive
+            $receipt = ConvertTo-RepositoryReceipt (Initialize-PMUUriFixture $TestDrive).Source
+            $path = Write-RepositoryReceipt $receipt $TestDrive
+            Mock Get-RepositoryProcessStart { $null }
+            Mock Get-RepositoryRegistration {}
+            Repair-RepositoryReceipt $TestDrive
+            Test-Path -LiteralPath $path | Should -BeFalse
+            Test-Path -LiteralPath $TestDrive -PathType Container | Should -BeTrue
+            Should -Invoke Get-RepositoryRegistration -Times 1 -Exactly -ParameterFilter {
+                $Name -ceq $receipt.RegistrationName
+            }
+        }
     }
 }
