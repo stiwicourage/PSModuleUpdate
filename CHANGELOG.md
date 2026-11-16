@@ -41,6 +41,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Provision exact qualified PowerShellGet 2.2.5 inside owned CI runtimes and
+  verify its origin, loaded version and manifest path in the aggregate gate.
+  This preserves PMU's native provider requirement when newer PowerShell
+  archives bundle an unqualified version; ambient installations are unchanged.
+- Isolate the Windows Documents-folder fact in installation-root tests so
+  Linux runners do not depend on a host Documents folder. Native path
+  selection, path-safety validation and no-write assertions are unchanged.
 - Record the qualified PSResourceGet 1.2.0 availability in CI lane manifests
   even when the selected PowerShell runtime bundles a newer provider, so the
   aggregate gate does not reject an available required dependency.

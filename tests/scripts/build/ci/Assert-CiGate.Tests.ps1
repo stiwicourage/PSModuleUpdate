@@ -26,14 +26,19 @@ BeforeAll {
         $directory = Join-Path $TestDrive $Name
         New-Item -ItemType Directory -Path $directory -Force | Out-Null
         foreach ($id in $lane) {
-            $laneStatus = if ($Status.ContainsKey($id)) {
-                $Status[$id]
-            } else {
-                'passed'
-            }
+            $laneStatus = Get-LaneManifestStatus -LaneId $id -Status $Status
             Write-LaneManifest -Directory $directory -LaneId $id -Status $laneStatus
         }
         $directory
+    }
+
+    function Get-LaneManifestStatus {
+        param([string]$LaneId, [hashtable]$Status)
+
+        if ($Status.ContainsKey($LaneId)) {
+            return $Status[$LaneId]
+        }
+        return 'passed'
     }
 
     $script:allSuccess = @{
@@ -62,6 +67,77 @@ BeforeAll {
 }
 
 Describe 'Test-CiGateResult' -Tag 'BuildTooling' {
+    Context 'Foreign Windows native provenance' -Tag 'CiNativePortability' {
+        BeforeAll {
+            function Write-WindowsLaneManifest {
+                param([string]$Directory)
+
+                $folder = Join-Path $Directory 'pmu-ci-lane-test-run-1-lane-a'
+                $path = Join-Path $folder 'lane-manifest.json'
+                $manifest = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -AsHashtable
+                Initialize-WindowsLaneConfiguration -Manifest $manifest
+                $runtime = Get-CiGateTestRuntime -Identity $manifest.identity
+                Initialize-WindowsLaneRuntime -Record $runtime
+                $manifest.environment = $runtime.Environment
+                $manifest.provisioning.runtime = $runtime
+                $manifest.phases = @('build', 'unit', 'integration' | ForEach-Object { Write-CiGateTestPhase -Directory $folder -Name $_ -Record $runtime })
+                $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $path
+                return $manifest.configuration
+            }
+
+            function Initialize-WindowsLaneConfiguration {
+                param([hashtable]$Manifest)
+
+                $Manifest.configuration.runner = 'windows-2025'
+                $Manifest.configuration.os = 'Windows'
+                $Manifest.configuration.runtimeIdentifier = 'win-x64'
+                $Manifest.selectedRuntime.OperatingSystem = 'Windows'
+                $Manifest.selectedRuntime.Executable = 'C:\owned-runtime\pwsh.exe'
+                $Manifest.provisioning.runtimeIdentifier = 'win-x64'
+                $Manifest.provisioning.executable = $Manifest.selectedRuntime.Executable
+                $Manifest.provisioning.directory = 'C:\owned-runtime'
+                $Manifest.provisioning.nativeProvider.manifestPath = 'C:\owned-runtime\Modules\PowerShellGet\PowerShellGet.psd1'
+            }
+
+            function Initialize-WindowsLaneRuntime {
+                param([hashtable]$Record)
+
+                $Record.Executable = 'C:\owned-runtime\pwsh.exe'
+                $Record.Environment.OperatingSystem = 'Windows'
+                $Record.Environment.RunnerOs = 'Windows'
+                $Record.Environment.ImageOs = 'win25'
+            }
+
+            function Invoke-WindowsTestGate {
+                param([string]$Directory, [hashtable]$Configuration)
+
+                $context = $script:gateContext.Clone()
+                $context.commitSha = $sha
+                $context.lanes = @($Configuration, (Get-CiGateTestConfiguration lane-b))
+                Test-CiGateResult -JobResult $script:allSuccess -ExpectedLaneId $lane -ManifestDirectory $Directory -RunContext $context
+            }
+        }
+
+        It 'accepts a Windows lane flat native manifest from a non-Windows aggregate host' {
+            $directory = Build-ManifestDirectory -Name 'windows-flat'
+            $configuration = Write-WindowsLaneManifest -Directory $directory
+            @(Invoke-WindowsTestGate -Directory $directory -Configuration $configuration).Count | Should -Be 0
+        }
+
+        It 'rejects a Windows lane native manifest with <Name> from a non-Windows aggregate host' -ForEach @(
+            @{ Name = 'outside-root path'; ManifestPath = 'C:\shared\PowerShellGet.psd1' }
+            @{ Name = 'versioned path'; ManifestPath = 'C:\owned-runtime\Modules\PowerShellGet\2.2.5\PowerShellGet.psd1' }
+        ) {
+            $directory = Build-ManifestDirectory -Name $Name
+            $configuration = Write-WindowsLaneManifest -Directory $directory
+            $path = Join-Path $directory 'pmu-ci-lane-test-run-1-lane-a/lane-manifest.json'
+            $manifest = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -AsHashtable
+            $manifest.provisioning.nativeProvider.manifestPath = $ManifestPath
+            $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $path
+            @(Invoke-WindowsTestGate -Directory $directory -Configuration $configuration).Count | Should -BeGreaterThan 0
+        }
+    }
+
     It 'passes only when every required job succeeded and every expected lane manifest passed for the commit' {
         $directory = Build-ManifestDirectory -Name 'ok'
         @(Invoke-TestGate -JobResult $script:allSuccess `
@@ -146,6 +222,46 @@ Describe 'Test-CiGateResult' -Tag 'BuildTooling' {
     }
 
     It 'rejects invalid lane evidence: <Name>' -ForEach @(
+        @{
+            Name = 'missing native provider'
+            Field = 'provisioning.nativeProvider'
+            Value = $null
+        }
+        @{
+            Name = 'wrong native name'
+            Field = 'provisioning.nativeProvider.name'
+            Value = 'Other'
+        }
+        @{
+            Name = 'wrong requested native version'
+            Field = 'provisioning.nativeProvider.requestedVersion'
+            Value = '2.2.6'
+        }
+        @{
+            Name = 'wrong actual native version'
+            Field = 'provisioning.nativeProvider.actualVersion'
+            Value = '2.2.6'
+        }
+        @{
+            Name = 'untrusted native repository'
+            Field = 'provisioning.nativeProvider.sourceRepository'
+            Value = 'Other'
+        }
+        @{
+            Name = 'untrusted native endpoint'
+            Field = 'provisioning.nativeProvider.sourceUri'
+            Value = 'https://unexpected.invalid/api/v2'
+        }
+        @{
+            Name = 'native manifest outside runtime'
+            Field = 'provisioning.nativeProvider.manifestPath'
+            Value = '/shared/PowerShellGet.psd1'
+        }
+        @{
+            Name = 'versioned native layout'
+            Field = 'provisioning.nativeProvider.manifestPath'
+            Value = '/owned-runtime/Modules/PowerShellGet/2.2.5/PowerShellGet.psd1'
+        }
         @{
             Name = 'wrong run'
             Field = 'identity.runId'

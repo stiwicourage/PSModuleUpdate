@@ -21,11 +21,23 @@ function Write-CiGateTestPhase {
 
     $log = Join-Path $Directory "logs/$Name.log"
     $Record.Context.phase = $Name
-    $Record | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath "$log.runtime.json"
+    Write-CiGateTestPhaseEvidence -Log $log -Name $Name -Record $Record
+    return Get-CiGateTestPhaseRecord -Name $Name -Record $Record
+}
+
+function Write-CiGateTestPhaseEvidence {
+    param([string]$Log, [string]$Name, [hashtable]$Record)
+
+    $Record | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath "$Log.runtime.json"
     if ($Name -ne 'build') {
-        $Record | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath "$log.test-runtime.json"
+        $Record | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath "$Log.test-runtime.json"
     }
-    @("Running tests from '/fixture/tests/example.Tests.ps1'", 'Describing fixture', '  [+] one 1ms (1ms|0ms)', '  [+] two 1ms (1ms|0ms)') | Set-Content -LiteralPath $log
+    @("Running tests from '/fixture/tests/example.Tests.ps1'", 'Describing fixture', '  [+] one 1ms (1ms|0ms)', '  [+] two 1ms (1ms|0ms)') | Set-Content -LiteralPath $Log
+}
+
+function Get-CiGateTestPhaseRecord {
+    param([string]$Name, [hashtable]$Record)
+
     return @{
         Name = $Name
         ExitCode = 0
@@ -47,12 +59,22 @@ function Write-CiGateTestReport {
 
     '<test-results total="2" errors="0" failures="0" inconclusive="0" skipped="0"><test-suite total="2" passed="2" failed="0" skipped="0" /></test-results>' |
         Set-Content -LiteralPath (Join-Path $Directory "$Name-nunit.xml")
+    Write-CiGateTestDetail -Directory $Directory -Name $Name
+    return Get-CiGateTestSummary
+}
+
+function Write-CiGateTestDetail {
+    param([string]$Directory, [string]$Name)
+
     $detail = @('one', 'two' | ForEach-Object { @{
                 File = 'tests/example.Tests.ps1'
                 Name = $_
                 Result = 'Passed'
             } })
     $detail | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Directory "$Name-details.json")
+}
+
+function Get-CiGateTestSummary {
     return @{
         Total = 2
         Passed = 2
@@ -81,7 +103,7 @@ function Get-CiGateTestRuntime {
     param([hashtable]$Identity)
 
     return @{
-        Executable = '/pwsh'
+        Executable = '/owned-runtime/pwsh'
         ProcessId = 123
         Environment = (Get-CiGateTestEnvironment)
         Context = $Identity.Clone()
@@ -99,56 +121,98 @@ function Write-CiGateTestManifest {
 
     $folder = Join-Path $Directory "pmu-ci-lane-test-run-1-$LaneId"
     New-Item -ItemType Directory -Path (Join-Path $folder 'logs') -Force | Out-Null
-    $identity = @{
+    $identity = Get-CiGateTestIdentity -LaneId $LaneId -CommitSha $CommitSha
+    $manifest = Get-CiGateTestManifest -Identity $identity -Status $Status
+    Complete-CiGateTestManifest -Manifest $manifest -Folder $folder
+    $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $folder 'lane-manifest.json')
+}
+
+function Get-CiGateTestIdentity {
+    param([string]$LaneId, [string]$CommitSha)
+
+    return @{
         laneId = $LaneId
         commitSha = $CommitSha
         runId = 'test-run'
         runAttempt = '1'
         executionId = 'a' * 32
     }
-    $runtime = Get-CiGateTestRuntime -Identity $identity
-    $expected = @{
+}
+
+function Get-CiGateTestSelectedRuntime {
+    return @{
         OperatingSystem = 'Linux'
         Architecture = 'X64'
         PowerShellVersion = '7.4.21'
         PowerShellChannel = '7.4'
-        Executable = '/pwsh'
+        Executable = '/owned-runtime/pwsh'
     }
-    $phases = @('build', 'unit', 'integration' | ForEach-Object { Write-CiGateTestPhase -Directory $folder -Name $_ -Record $runtime })
-    $summary = @{
-        unit = (Write-CiGateTestReport -Directory $folder -Name unit)
-        integration = (Write-CiGateTestReport -Directory $folder -Name integration)
-    }
-    $manifest = @{
+}
+
+function Get-CiGateTestManifest {
+    param([hashtable]$Identity, [string]$Status)
+
+    return @{
         schemaVersion = 1
-        laneId = $LaneId
-        commitSha = $CommitSha
+        laneId = $Identity.laneId
+        commitSha = $Identity.commitSha
         status = $Status
-        identity = $identity
-        environment = $runtime.Environment
-        configuration = (Get-CiGateTestConfiguration $LaneId)
-        selectedRuntime = $expected
-        phases = $phases
-        tests = $summary
+        identity = $Identity
+        configuration = (Get-CiGateTestConfiguration $Identity.laneId)
         mismatches = @()
-        modules = @{}
     }
-    $manifest.provisioning = @{
+}
+
+function Complete-CiGateTestManifest {
+    param([hashtable]$Manifest, [string]$Folder)
+
+    $runtime = Get-CiGateTestRuntime -Identity $Manifest.identity
+    $Manifest.environment = $runtime.Environment
+    $Manifest.selectedRuntime = Get-CiGateTestSelectedRuntime
+    $Manifest.phases = @('build', 'unit', 'integration' | ForEach-Object { Write-CiGateTestPhase -Directory $Folder -Name $_ -Record $runtime })
+    $Manifest.tests = @{
+        unit = (Write-CiGateTestReport -Directory $Folder -Name unit)
+        integration = (Write-CiGateTestReport -Directory $Folder -Name integration)
+    }
+    $Manifest.provisioning = Get-CiGateTestProvisioning -Runtime $runtime
+    $Manifest.modules = Get-CiGateTestModuleVersion
+}
+
+function Get-CiGateTestProvisioning {
+    param([hashtable]$Runtime)
+
+    return @{
         sha256 = 'a' * 64
         fileName = 'archive'
         hashSource = 'pinned'
         channel = '7.4'
         version = '7.4.21'
         runtimeIdentifier = 'linux-x64'
-        executable = '/pwsh'
-        runtime = $runtime
+        executable = '/owned-runtime/pwsh'
+        directory = '/owned-runtime'
+        nativeProvider = Get-CiGateTestNativeProvider
+        runtime = $Runtime
     }
-    $manifest.modules = @{
+}
+
+function Get-CiGateTestModuleVersion {
+    return @{
         Pester = @('5.9.1')
         NovaModuleTools = @('3.4.2')
         PSScriptAnalyzer = @('1.25.0')
         'Microsoft.PowerShell.PSResourceGet' = @('1.2.0')
         'Microsoft.PowerShell.PlatyPS' = @('1.0.3')
     }
-    $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $folder 'lane-manifest.json')
+}
+
+function Get-CiGateTestNativeProvider {
+    return @{
+        name = 'PowerShellGet'
+        sourceRepository = 'PSGallery'
+        sourceUri = 'https://www.powershellgallery.com/api/v2'
+        requestedVersion = '2.2.5'
+        actualVersion = '2.2.5'
+        manifestPath = '/owned-runtime/Modules/PowerShellGet/PowerShellGet.psd1'
+        archiveBundledVersion = '2.2.6'
+    }
 }

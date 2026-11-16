@@ -52,6 +52,10 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
 
 ### Fixed
 
+- Platform CI uses the already-qualified native PowerShellGet 2.2.5 in its
+  owned runtimes; public commands and ambient installations are unchanged.
+- Contributor tests for Windows installation roots no longer fail on Linux
+  runners without a Documents folder.
 - Contributor CI no longer rejects the required provider merely because
   PowerShell also bundles a newer PSResourceGet version.
 - Update checks now report `PMU.PackageNotFound` when the selected repository

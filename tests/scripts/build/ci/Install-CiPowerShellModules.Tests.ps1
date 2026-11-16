@@ -4,6 +4,18 @@ BeforeAll {
 }
 
 Describe 'Get-CiModuleInstallParameter' -Tag 'BuildTooling' {
+    It 'explicitly acquires only qualified PowerShellGet 2.2.5 from PSGallery' {
+        $parameter = Get-CiModuleInstallParameter -Name PowerShellGet -ModuleRoot $TestDrive
+        $parameter.RequiredVersion | Should -Be '2.2.5'
+        $parameter.Repository | Should -BeExactly 'PSGallery'
+        $parameter.Path | Should -Be $TestDrive
+    }
+
+    It 'does not add the native overlay to the default dependency list' {
+        $command = Get-Command (Join-Path $root 'scripts/build/ci/Install-CiPowerShellModules.ps1')
+        $command.ScriptBlock.Ast.ParamBlock.Parameters[0].DefaultValue.SafeGetValue() | Should -Not -Contain 'PowerShellGet'
+    }
+
     It 'pins Pester to the version used by the repository quality pipeline' {
         $parameter = Get-CiModuleInstallParameter -Name 'Pester'
         $parameter.RequiredVersion | Should -Be '5.7.1'

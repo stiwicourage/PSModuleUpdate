@@ -47,6 +47,20 @@ The test/coverage workflow runs `Invoke-NovaTest` before `Test-NovaBuild` and
 uploads that report for CodeScene; test counts alone do not
 establish a measured coverage percentage.
 
+### Qualified native provider in CI
+
+The platform provisioner composes an owned runtime from the checksum-verified
+official PowerShell archive and exact PSGallery PowerShellGet 2.2.5. The
+qualified provider occupies that runtime's flat `Modules/PowerShellGet`
+directory; ambient PowerShell installations and user module stores are not
+changed. Provisioning and the aggregate gate retain the archive identity and
+check the native provider's source, requested/actual version and manifest path.
+
+This tests the selected PowerShell engine with PMU's already-qualified native
+provider. It does not qualify stock PowerShell 7.7's bundled PowerShellGet 2.2.6.
+Production still rejects unqualified provider versions, and native store,
+temporary-path and approved-destination safeguards remain unchanged.
+
 ### Native update transition
 
 Current local functional evidence on macOS ARM64 / PowerShell 7.4.21 passes.

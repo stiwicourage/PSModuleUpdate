@@ -71,6 +71,9 @@ it does not install dependencies in CurrentUser or AllUsers. Existing
 PSResourceGet repository state is preserved by the provider fixtures, not by
 assuming that `HOME` or `PSModulePath` redirects registrations. Unexpected
 skips and incomplete XML/log/runtime evidence fail the lane.
+The owned PowerShell runtime also receives exact qualified PowerShellGet 2.2.5;
+see [native provider composition](docs/architecture/TESTING.md#qualified-native-provider-in-ci).
+This does not change or qualify the native provider in an ambient installation.
 
 Dependency provisioning checks that PSGallery points to its official endpoint.
 If explicit native default registration is needed, it is removed afterward only

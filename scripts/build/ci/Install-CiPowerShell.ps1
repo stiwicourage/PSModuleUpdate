@@ -10,6 +10,7 @@ param(
 $script:PowerShellReleaseBase = 'https://github.com/PowerShell/PowerShell/releases/download'
 $script:PowerShellMetadataUri = 'https://raw.githubusercontent.com/PowerShell/PowerShell/master/tools/metadata.json'
 . (Join-Path $PSScriptRoot 'CiRuntimeEvidence.ps1')
+. (Join-Path $PSScriptRoot 'Install-CiNativeProvider.ps1')
 
 function Get-CiPowerShellAssetName {
     [OutputType([string])]
@@ -178,7 +179,21 @@ function Install-CiPowerShell {
     New-Item -ItemType Directory -Path $InstallRoot -Force | Out-Null
     $release = Resolve-CiPowerShellRelease -Channel $Channel -RuntimeIdentifier $RuntimeIdentifier -InstallRoot $InstallRoot -PinPath $PinPath
     $directory = Save-CiPowerShellArchive -Release $release -InstallRoot $InstallRoot
-    return Get-CiPowerShellInstallationRecord -Channel $Channel -RuntimeIdentifier $RuntimeIdentifier -Release $release -Directory $directory
+    $installation = Get-CiPowerShellInstallationRecord -Channel $Channel -RuntimeIdentifier $RuntimeIdentifier -Release $release -Directory $directory
+    return Complete-CiPowerShellInstallation -Installation $installation
+}
+
+function Complete-CiPowerShellInstallation {
+    param($Installation)
+    $owner = Get-CiDependencyOwner -Path $Installation.directory
+    try {
+        $Installation | Add-Member -NotePropertyName nativeProvider -NotePropertyValue (Install-CiNativeProvider -Installation $Installation)
+        Assert-CiInstalledPowerShell -Installation $Installation
+        return $Installation
+    } catch {
+        Remove-CiDependencyRoot -Owner $owner
+        throw
+    }
 }
 
 function Resolve-CiPowerShellRelease {
@@ -196,9 +211,28 @@ function Save-CiPowerShellArchive {
     $archive = Join-Path $InstallRoot $Release.FileName
     Invoke-WebRequest -Uri "$script:PowerShellReleaseBase/v$( $Release.Version )/$( $Release.FileName )" -OutFile $archive
     Assert-CiFileHash -Path $archive -ExpectedSha256 $Release.Sha256
-    $directory = Join-Path $InstallRoot "powershell-$( $Release.Version )"
-    Expand-CiPowerShellArchive -Archive $archive -Destination $directory
-    return $directory
+    $root = Resolve-CiInstallRootPath -Path $InstallRoot
+    $owner = New-CiDependencyRoot -Path (Join-Path $root "pmu-ci-modules-runtime-$([guid]::NewGuid().ToString('N'))")
+    try {
+        Expand-CiPowerShellArchive -Archive $archive -Destination $owner.Path
+        return $owner.Path
+    } catch {
+        Remove-CiDependencyRoot -Owner $owner
+        throw
+    }
+}
+
+function Resolve-CiInstallRootPath {
+    param([string]$Path)
+    $item = Get-Item -LiteralPath $Path -ErrorAction Stop
+    $resolved = $item.FullName
+    while ($item) {
+        if ($item.LinkType) {
+            $resolved = $item.ResolveLinkTarget($true).FullName + $resolved.Substring($item.FullName.Length)
+        }
+        $item = $item.Parent
+    }
+    return $resolved
 }
 
 function Get-CiPowerShellInstallationRecord {
@@ -289,7 +323,6 @@ function Publish-CiPowerShellEnvironment {
 
 if ($MyInvocation.InvocationName -ne '.') {
     $installation = Install-CiPowerShell -Channel $Channel -RuntimeIdentifier $RuntimeIdentifier -InstallRoot $InstallRoot -PinPath $PinPath
-    Assert-CiInstalledPowerShell -Installation $installation
     Publish-CiPowerShellInstallation -Installation $installation -ProvisioningFile $ProvisioningFile
     Write-Information "Provisioned PowerShell $( $installation.version ) ($( $installation.channel ), $( $installation.hashSource )) at $( $installation.directory )." -InformationAction Continue
 }

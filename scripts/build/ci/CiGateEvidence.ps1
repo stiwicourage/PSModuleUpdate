@@ -10,17 +10,23 @@ function Assert-CiGateConfiguration {
         [Parameter(Mandatory)]$Expected
     )
 
-    foreach ($field in 'id', 'name', 'runner', 'os', 'architecture', 'runtimeIdentifier', 'powershell') {
-        if ($Manifest.configuration.$field -cne $Expected.$field) {
-            throw "Lane configuration differs at '$field'."
-        }
-    }
+    Assert-CiGateLaneConfiguration -Actual $Manifest.configuration -Expected $Expected
     Assert-CiGateSelectedRuntime -Manifest $Manifest -Expected $Expected
     Assert-CiRuntimeRecord -Record @{
         Environment = $Manifest.environment
         Executable = $Manifest.selectedRuntime.Executable
     } -Expected $Manifest.selectedRuntime
     Assert-CiGateRunnerIdentity -Environment $Manifest.environment
+}
+
+function Assert-CiGateLaneConfiguration {
+    param($Actual, $Expected)
+
+    foreach ($field in 'id', 'name', 'runner', 'os', 'architecture', 'runtimeIdentifier', 'powershell') {
+        if ($Actual.$field -cne $Expected.$field) {
+            throw "Lane configuration differs at '$field'."
+        }
+    }
 }
 
 function Assert-CiGateRunnerIdentity {
@@ -47,16 +53,28 @@ function Assert-CiGateSelectedRuntime {
         OperatingSystem = $Expected.os
         Architecture = $Expected.architecture
     }
-    if ($runtime.PowerShellChannel -cne $Expected.powershell) {
+    Assert-CiGateRuntimeSelection -Runtime $runtime -Expected $Expected
+    Assert-CiGateExecutablePath -Executable $runtime.Executable -OperatingSystem $Expected.os
+}
+
+function Assert-CiGateRuntimeSelection {
+    param($Runtime, $Expected)
+
+    if ($Runtime.PowerShellChannel -cne $Expected.powershell) {
         throw 'Selected runtime channel differs from lane configuration.'
     }
-    if ($runtime.PowerShellVersion -notmatch '^\d+\.\d+\.\d+$') {
+    if ($Runtime.PowerShellVersion -notmatch '^\d+\.\d+\.\d+$') {
         throw 'Invalid selected runtime version.'
     }
-    Assert-CiGateRuntimeVersion -Runtime $runtime
-    $absolute = $runtime.Executable -match '^/'
-    if ($Expected.os -eq 'Windows') {
-        $absolute = $runtime.Executable -match '^[A-Za-z]:[\\/]'
+    Assert-CiGateRuntimeVersion -Runtime $Runtime
+}
+
+function Assert-CiGateExecutablePath {
+    param($Executable, $OperatingSystem)
+
+    $absolute = $Executable -match '^/'
+    if ($OperatingSystem -eq 'Windows') {
+        $absolute = $Executable -match '^[A-Za-z]:[\\/]'
     }
     if (-not $absolute) {
         throw 'Selected executable path is not absolute.'
@@ -95,12 +113,8 @@ function Assert-CiGateProvisioning {
     param([Parameter(Mandatory)]$Manifest)
 
     $provision = $Manifest.provisioning
-    if ($provision.sha256 -notmatch '^[a-fA-F0-9]{64}$') {
-        throw 'Missing verified provisioning checksum.'
-    }
-    if (-not $provision.fileName -or -not $provision.hashSource) {
-        throw 'Incomplete provisioning provenance.'
-    }
+    Assert-CiGateNativeProvider -Provisioning $provision
+    Assert-CiGateArchiveProvenance -Provisioning $provision
     $expected = @{
         channel = $Manifest.configuration.powershell
         runtimeIdentifier = $Manifest.configuration.runtimeIdentifier
@@ -109,6 +123,49 @@ function Assert-CiGateProvisioning {
     }
     Assert-CiGateFieldMatch -Actual $provision -Expected $expected
     Assert-CiRuntimeRecord -Record $provision.runtime -Expected $Manifest.selectedRuntime
+}
+
+function Assert-CiGateArchiveProvenance {
+    param($Provisioning)
+
+    if ($Provisioning.sha256 -notmatch '^[a-fA-F0-9]{64}$') {
+        throw 'Missing verified provisioning checksum.'
+    }
+    if (-not $Provisioning.fileName -or -not $Provisioning.hashSource) {
+        throw 'Incomplete provisioning provenance.'
+    }
+}
+
+function Assert-CiGateNativeProvider {
+    param($Provisioning)
+    foreach ($field in @{
+        name = 'PowerShellGet'
+        sourceRepository = 'PSGallery'
+        sourceUri = 'https://www.powershellgallery.com/api/v2'
+        requestedVersion = '2.2.5'
+        actualVersion = '2.2.5'
+    }.GetEnumerator()) {
+        if ($Provisioning.nativeProvider[$field.Key] -cne $field.Value) {
+            throw "Native provider provenance differs at '$($field.Key)'."
+        }
+    }
+    Assert-CiGateNativePath -Provisioning $Provisioning
+}
+
+function Assert-CiGateNativePath {
+    param($Provisioning)
+    $directory = $Provisioning.directory.Replace('\', '/').TrimEnd('/')
+    if ($directory -notmatch '^(?:/|[A-Za-z]:/).+' -or $directory -match '(^|/)\.\.?(/|$)') {
+        throw 'Invalid owned runtime directory.'
+    }
+    $manifest = $Provisioning.nativeProvider.manifestPath.Replace('\', '/')
+    $executable = $Provisioning.executable.Replace('\', '/')
+    if ($manifest -cne "$directory/Modules/PowerShellGet/PowerShellGet.psd1") {
+        throw 'Native provider manifest is not the owned runtime flat manifest.'
+    }
+    if ($executable.Substring(0, $executable.LastIndexOf('/')) -cne $directory) {
+        throw 'Native provider runtime differs from the selected executable.'
+    }
 }
 
 function Assert-CiGateTestEvidence {
@@ -153,10 +210,16 @@ function Assert-CiSerializedDetail {
         throw 'Serialized test detail count differs from retained log.'
     }
     for ($index = 0; $index -lt $Actual.Count; $index++) {
-        foreach ($name in 'File', 'Name', 'Result') {
-            if ($Actual[$index].$name -cne $Serialized[$index].$name) {
-                throw 'Serialized test detail differs from retained log.'
-            }
+        Assert-CiSerializedTestEntry -Actual $Actual[$index] -Serialized $Serialized[$index]
+    }
+}
+
+function Assert-CiSerializedTestEntry {
+    param($Actual, $Serialized)
+
+    foreach ($name in 'File', 'Name', 'Result') {
+        if ($Actual.$name -cne $Serialized.$name) {
+            throw 'Serialized test detail differs from retained log.'
         }
     }
 }
@@ -172,6 +235,12 @@ function Assert-CiGateManifestIdentity {
             throw "Manifest belongs to another '$name'."
         }
     }
+    Assert-CiGateIdentityConsistency -Manifest $Manifest
+}
+
+function Assert-CiGateIdentityConsistency {
+    param($Manifest)
+
     if ($Manifest.identity.commitSha -cne $Manifest.commitSha -or $Manifest.identity.laneId -cne $Manifest.laneId) {
         throw 'Manifest and execution identity differ.'
     }
@@ -188,15 +257,27 @@ function Assert-CiGateManifestEvidence {
         [Parameter(Mandatory)][string]$Directory
     )
 
-    Assert-CiGateManifestSchema -Manifest $Manifest
-    if ($Manifest.schemaVersion -ne 1) {
-        throw 'Unsupported or missing manifest schema.'
-    }
+    Assert-CiGateSupportedSchema -Manifest $Manifest
     Assert-CiGateManifestIdentity -Manifest $Manifest -RunContext $RunContext
     Assert-CiGateConfiguration -Manifest $Manifest -Expected $Expected
     Assert-CiGateProvisioning -Manifest $Manifest
     Assert-CiLaneRuntimeEvidence -Directory (Join-Path $Directory 'logs') -Phase $Manifest.phases -Expected $Manifest.selectedRuntime -Identity $Manifest.identity
     Assert-CiGateTestEvidence -Manifest $Manifest -Directory $Directory
+    Assert-CiGatePassedEvidence -Manifest $Manifest
+}
+
+function Assert-CiGateSupportedSchema {
+    param($Manifest)
+
+    Assert-CiGateManifestSchema -Manifest $Manifest
+    if ($Manifest.schemaVersion -ne 1) {
+        throw 'Unsupported or missing manifest schema.'
+    }
+}
+
+function Assert-CiGatePassedEvidence {
+    param($Manifest)
+
     if ((Get-CiLaneStatus -Mismatch $Manifest.mismatches -Phase $Manifest.phases -Summary $Manifest.tests) -ne 'passed') {
         throw 'Manifest evidence does not establish a passed lane.'
     }
