@@ -62,12 +62,13 @@ Describe 'Shared CI consumer contracts' -Tag 'SharedCi', 'WorkflowPolicy', 'Buil
         $script:securityWorkflow | Should -Not -Match 'github.event.schedule'
     }
 
-    It 'groups shared workflow dependency updates on the common weekly schedule' {
+    It 'groups shared workflow dependency updates daily without the release cooldown' {
         $script:dependabot | Should -Match 'package-ecosystem: github-actions'
         $script:dependabot | Should -Match 'directory: /'
-        $script:dependabot | Should -Match 'interval: weekly'
+        $script:dependabot | Should -Match 'interval: daily'
         $script:dependabot | Should -Match 'prefix: chore'
         $script:dependabot | Should -Match 'powershell-ci:'
         $script:dependabot | Should -Match 'stiwicourage/powershell-ci\*'
+        $script:dependabot | Should -Match '(?s)cooldown:\s+exclude:\s+- "stiwicourage/powershell-ci\*"'
     }
 }
