@@ -285,13 +285,12 @@ uses `run.ps1`; the six-lane platform matrix and its evidence gate remain owned
 by this repository.
 
 All four shared-CI module consumers use the same test, publish, security, and
-weekly Dependabot convention, with PSScriptAnalyzer pinned to 1.25.0 and both
+daily Dependabot convention (without the release cooldown for `powershell-ci`), with PSScriptAnalyzer pinned to 1.25.0 and both
 release documents validated. PMU adds only its isolated-dependency and Pester
 requirements. Shared defaults own analysis and coverage artifact configuration.
 
-PSModuleUpdate's shared workflow references temporarily use `@develop` during
-testing. GerberCore and SemanticRelease retain `@0.1.1`; Gerber.AzureDevOps
-retains its existing `@0.1.0`.
+All consumers pin a released `powershell-ci` tag, and Dependabot proposes
+grouped updates to the newest tag.
 The shared changes must remain compatible with those tagged callers.
 PSModuleUpdate moves to a released version tag only after it exists and the
 shared changes are qualified.

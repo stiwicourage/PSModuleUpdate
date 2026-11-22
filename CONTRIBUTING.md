@@ -101,8 +101,8 @@ the 95% source-coverage threshold. Publish uses `Test-NovaBuild` and Nova's CI
 release mode, matching GerberCore.
 
 The four shared-CI module consumers use one caller convention: daily tests,
-weekly shared security checks, and grouped weekly GitHub Actions dependency
-updates. Only PMU's isolation/Pester requirements and Gerber.AzureDevOps'
+weekly shared security checks, and grouped daily GitHub Actions dependency
+updates without the release cooldown for `powershell-ci`. Only PMU's isolation/Pester requirements and Gerber.AzureDevOps'
 existing build-validation and publisher exceptions differ. Shared defaults
 control analyzer rules, analysis, coverage artifact names, and review severity.
 The existing settings file still belongs to local `run.ps1` validation.
