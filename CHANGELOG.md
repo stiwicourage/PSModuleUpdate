@@ -10,19 +10,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Dependabot now proposes grouped `powershell-ci` updates daily, without the
-  default release cooldown, and the shared CI contract test expects that schedule.
-
 ### Deprecated
 
 ### Removed
 
 ### Fixed
 
+### Security
+
+## [0.3.1] - 2026-11-22
+
+### Changed
+
+- Dependabot now proposes grouped `powershell-ci` updates daily, without the
+  default release cooldown, and the shared CI contract test expects that schedule.
+
+### Fixed
+
 - Removed the extra blank line that the 0.3.0 release automation left at the end
   of `CHANGELOG.md` and `RELEASE_NOTE.md`.
-
-### Security
 
 ## [0.3.0] - 2026-11-16
 
@@ -160,7 +166,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   so NovaModuleTools is discoverable for CI and changelog validation, with
   ownership-validated cleanup even after a failed consumer step.
 
-[Unreleased]: https://github.com/stiwicourage/PSModuleUpdate/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/stiwicourage/PSModuleUpdate/compare/0.3.1...HEAD
+[0.3.1]: https://github.com/stiwicourage/PSModuleUpdate/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/stiwicourage/PSModuleUpdate/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/stiwicourage/PSModuleUpdate/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/stiwicourage/PSModuleUpdate/releases/tag/0.1.0
