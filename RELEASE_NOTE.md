@@ -83,3 +83,47 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
   Dependencies must still resolve successfully before installation can finish.
 - Update checks no longer fail merely because `en-US` or `resources` folders
   coexist with a versioned module installation. Existing files are left intact.
+
+## [0.2.0] - 2026-10-27
+
+### Changed
+
+- Updates of existing installations use native PowerShellGet `Update-Module`
+  without Force or an install fallback. Exact target and source validation,
+  consent and recovery remain in effect, and your repository settings are not
+  changed.
+- Prerelease updates support alphanumeric labels such as `preview03`; dotted
+  labels such as `preview.3` are not supported by the native installer.
+
+### Fixed
+
+- PMU declares Microsoft.PowerShell.PSResourceGet 1.2.0 as a required module, so
+  a missing provider is reported before PMU commands run.
+- Linux updates no longer falsely reject a live approving process. Legacy Linux
+  repository receipts require explicit recovery rather than automatic cleanup.
+- Prerelease targets found on PSGallery now install instead of failing during
+  staging.
+- Update checks no longer fail when resource folders coexist with numeric
+  version folders. No installation is migrated or removed.
+
+## [0.1.0] - 2026-10-24
+
+### Added
+
+- Plan module updates with `Get-PSModuleUpdate` and install an approved plan
+  with `Install-PSModuleUpdate`. Targets can be independent modules without a
+  PMU dependency.
+- Choose a repository by registered name or URI, and supply optional credentials
+  separately for planning and installation. PMU never falls back to another
+  repository.
+- Select CurrentUser or AllUsers scope and stable or prerelease releases through
+  the update policy. PMU never elevates privileges, stores credentials or reloads
+  modules.
+- Same-base prerelease updates use staged verification, backups and recovery.
+  Results distinguish active, installed and target versions and indicate when a
+  restart is required.
+
+[Unreleased]: https://github.com/stiwicourage/PSModuleUpdate/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/stiwicourage/PSModuleUpdate/compare/0.2.0...0.3.0
+[0.2.0]: https://github.com/stiwicourage/PSModuleUpdate/compare/0.1.0...0.2.0
+[0.1.0]: https://github.com/stiwicourage/PSModuleUpdate/releases/tag/0.1.0
