@@ -10,11 +10,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Dependabot now proposes grouped `powershell-ci` updates daily, without the
+  default release cooldown, and the shared CI contract test expects that schedule.
+
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+
+- Removed the extra blank line that the 0.3.0 release automation left at the end
+  of `CHANGELOG.md` and `RELEASE_NOTE.md`.
 
 ### Security
 
@@ -153,4 +159,3 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Pass the owned temporary dependency root between `Run Tests` workflow steps
   so NovaModuleTools is discoverable for CI and changelog validation, with
   ownership-validated cleanup even after a failed consumer step.
-

@@ -83,4 +83,3 @@ This file summarizes public cmdlet, CLI, configuration, and migration changes fo
   Dependencies must still resolve successfully before installation can finish.
 - Update checks no longer fail merely because `en-US` or `resources` folders
   coexist with a versioned module installation. Existing files are left intact.
-
